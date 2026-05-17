@@ -7,8 +7,8 @@ const products = [
     label: "No Signal",
     category: "Oversized Tee",
     crop: "crop-tee",
-    summary: "A boxy silhouette with dropped shoulders, made for disconnected focus and heavyweight structure.",
-    note: "The No Signal tee features a boxy silhouette with dropped shoulders. Designed for a disconnected feel in a noisy world.",
+    summary: "Box fit. Dropped shoulder. Quiet weight.",
+    note: "The No Signal tee is cut boxy with dropped shoulders and a dense hand feel. A future uniform for moving outside the feed.",
     specs: [
       ["Fabric", "100% Cotton"],
       ["Weight", "240 GSM"],
@@ -24,8 +24,8 @@ const products = [
     label: "Midnight City",
     category: "Heavy Hoodie",
     crop: "crop-hoodie",
-    summary: "A dense fleece layer with sculpted volume, built for cold concrete nights and clean lines.",
-    note: "Midnight City uses a heavy hood, ribbed edge construction, and an easy box fit that keeps the silhouette sharp.",
+    summary: "Dense fleece volume for cold concrete nights.",
+    note: "Midnight City uses a heavy hood, ribbed edge construction, and a squared silhouette that keeps the shape sharp.",
     specs: [
       ["Fabric", "Cotton Fleece"],
       ["Weight", "380 GSM"],
@@ -41,8 +41,8 @@ const products = [
     label: "Afterimage",
     category: "Layered Jersey",
     crop: "crop-fabric",
-    summary: "A low-glare white layer with a soft hand feel, cut to stack cleanly under outerwear.",
-    note: "Afterimage is designed as a quiet base layer with subtle texture and a relaxed silhouette.",
+    summary: "Low-glare layer. Soft structure. Clean stack.",
+    note: "Afterimage is designed as a quiet base with subtle texture and a relaxed silhouette under outerwear.",
     specs: [
       ["Fabric", "Modal Blend"],
       ["Weight", "180 GSM"],
@@ -76,6 +76,18 @@ const bagCount = document.querySelector("#bagCount");
 const bagState = document.querySelector("#bagState");
 const bagItems = document.querySelector("#bagItems");
 const subtotal = document.querySelector("#subtotal");
+const topbar = document.querySelector("#topbar");
+let revealObserver;
+
+document.documentElement.classList.add("motion-ready");
+
+function observeRevealTargets(scope = document) {
+  if (!revealObserver) return;
+  scope.querySelectorAll("[data-reveal]:not(.is-observed)").forEach((element) => {
+    element.classList.add("is-observed");
+    revealObserver.observe(element);
+  });
+}
 
 function renderProducts() {
   productList.innerHTML = "";
@@ -83,6 +95,7 @@ function renderProducts() {
   products.forEach((product) => {
     const card = document.createElement("article");
     card.className = `product-card ${state.selected.id === product.id ? "selected" : ""}`;
+    card.setAttribute("data-reveal", "");
     card.innerHTML = `
       <button class="product-thumb image-crop ${product.crop}" type="button" aria-label="View ${product.name}"></button>
       <div class="product-info">
@@ -117,6 +130,8 @@ function renderProducts() {
     card.querySelector(".product-actions button").addEventListener("click", () => toggleFavorite(product.id));
     productList.appendChild(card);
   });
+
+  observeRevealTargets(productList);
 }
 
 function renderDetail() {
@@ -186,6 +201,33 @@ function render() {
   renderBag();
 }
 
+revealObserver = new IntersectionObserver(
+  (entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add("is-visible");
+        revealObserver.unobserve(entry.target);
+      }
+    });
+  },
+  { threshold: 0.16, rootMargin: "0px 0px -60px 0px" }
+);
+
+observeRevealTargets();
+
+window.setTimeout(() => {
+  document.querySelectorAll("[data-reveal]:not(.is-visible)").forEach((element) => {
+    const rect = element.getBoundingClientRect();
+    if (rect.top < window.innerHeight && rect.bottom > 0) {
+      element.classList.add("is-visible");
+    }
+  });
+}, 600);
+
+window.addEventListener("scroll", () => {
+  topbar.classList.toggle("is-scrolled", window.scrollY > 24);
+});
+
 detailFavorite.addEventListener("click", () => toggleFavorite(state.selected.id));
 
 addToBag.addEventListener("click", () => {
@@ -199,7 +241,7 @@ addToBag.addEventListener("click", () => {
 
 document.querySelectorAll("[data-scroll-target]").forEach((button) => {
   button.addEventListener("click", () => {
-    document.querySelector(`#${button.dataset.scrollTarget}`).scrollIntoView({ behavior: "smooth" });
+    document.querySelector(`#${button.dataset.scrollTarget}`).scrollIntoView({ behavior: "smooth", block: "start" });
   });
 });
 

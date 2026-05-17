@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MG69 Street Luxury</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <svg class="icon-sprite" aria-hidden="true">
+      <symbol id="icon-menu" viewBox="0 0 24 24">
+        <path d="M4 7h16M4 12h16M4 17h16" />
+      </symbol>
+      <symbol id="icon-search" viewBox="0 0 24 24">
+        <path d="m21 21-4.3-4.3" />
+        <circle cx="11" cy="11" r="7" />
+      </symbol>
+      <symbol id="icon-heart" viewBox="0 0 24 24">
+        <path d="M19.2 5.3a5.1 5.1 0 0 0-7.2.2 5.1 5.1 0 0 0-7.2-.2 5.2 5.2 0 0 0 0 7.3L12 20l7.2-7.4a5.2 5.2 0 0 0 0-7.3Z" />
+      </symbol>
+      <symbol id="icon-bag" viewBox="0 0 24 24">
+        <path d="M6 8h12l-1 12H7L6 8Z" />
+        <path d="M9 8a3 3 0 0 1 6 0" />
+      </symbol>
+      <symbol id="icon-grid" viewBox="0 0 24 24">
+        <path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" />
+      </symbol>
+      <symbol id="icon-stack" viewBox="0 0 24 24">
+        <path d="m12 3 8 4-8 4-8-4 8-4Z" />
+        <path d="m4 12 8 4 8-4" />
+        <path d="m4 17 8 4 8-4" />
+      </symbol>
+      <symbol id="icon-spark" viewBox="0 0 24 24">
+        <path d="M12 3v5M12 16v5M3 12h5M16 12h5" />
+        <path d="m6.2 6.2 3 3M14.8 14.8l3 3M17.8 6.2l-3 3M9.2 14.8l-3 3" />
+      </symbol>
+      <symbol id="icon-plus" viewBox="0 0 24 24">
+        <path d="M12 5v14M5 12h14" />
+      </symbol>
+      <symbol id="icon-minus" viewBox="0 0 24 24">
+        <path d="M5 12h14" />
+      </symbol>
+    </svg>
+
+    <main class="app-shell">
+      <header class="topbar">
+        <button class="icon-button menu-button" type="button" aria-label="Open menu">
+          <svg><use href="#icon-menu"></use></svg>
+        </button>
+        <a class="brand" href="#home" aria-label="MG69 home">
+          <span class="brand-mark">MG</span>
+          <span class="brand-number">69</span>
+        </a>
+        <nav class="primary-nav" aria-label="Primary navigation">
+          <a href="#drop">Drop</a>
+          <a href="#details">Details</a>
+          <a href="#philosophy">Philosophy</a>
+        </nav>
+        <div class="top-actions">
+          <button class="icon-button" type="button" aria-label="Search collection">
+            <svg><use href="#icon-search"></use></svg>
+          </button>
+          <button class="bag-button" type="button" aria-label="View bag">
+            <svg><use href="#icon-bag"></use></svg>
+            <span id="bagCount">0</span>
+          </button>
+        </div>
+      </header>
+
+      <section class="mobile-hero" id="home" aria-label="MG69 collection introduction">
+        <div class="image-crop crop-cover"></div>
+        <div class="hero-copy">
+          <p>Street luxury</p>
+          <h1>Built beyond trends</h1>
+          <button class="light-command" type="button" data-scroll-target="drop">Explore shop</button>
+        </div>
+      </section>
+
+      <section class="experience-grid" aria-label="MG69 application">
+        <aside class="rail" aria-label="Collection tools">
+          <button class="rail-button active" type="button" aria-label="Shop">
+            <svg><use href="#icon-grid"></use></svg>
+          </button>
+          <button class="rail-button" type="button" aria-label="Construction">
+            <svg><use href="#icon-stack"></use></svg>
+          </button>
+          <button class="rail-button" type="button" aria-label="Signal">
+            <svg><use href="#icon-spark"></use></svg>
+          </button>
+        </aside>
+
+        <section class="hero-panel desktop-only" aria-label="Collection cover">
+          <div class="image-crop crop-cover"></div>
+          <div class="hero-panel-content">
+            <p class="micro-label">Street luxury</p>
+            <h2>MG69</h2>
+            <div class="signal-line"></div>
+            <p>Built beyond trends</p>
+            <span>Collection 001</span>
+            <button class="light-command" type="button" data-scroll-target="drop">Explore shop</button>
+          </div>
+          <div class="hero-footer">
+            <span>V1.1</span>
+            <span>Our philosophy</span>
+          </div>
+        </section>
+
+        <section class="feed-panel" id="drop" aria-label="Product feed">
+          <div class="panel-heading">
+            <div>
+              <p class="micro-label">Collection 001</p>
+              <h2>No Signal drop</h2>
+            </div>
+            <button class="filter-pill" type="button">All pieces</button>
+          </div>
+
+          <div class="product-list" id="productList"></div>
+        </section>
+
+        <section class="detail-panel" id="details" aria-label="Product details">
+          <div class="detail-image-wrap">
+            <div class="image-crop detail-image" id="detailImage"></div>
+            <button class="icon-button favorite-floating" type="button" id="detailFavorite" aria-label="Favorite selected piece">
+              <svg><use href="#icon-heart"></use></svg>
+            </button>
+          </div>
+
+          <div class="detail-copy">
+            <div class="detail-kicker">
+              <span id="detailCollection">Collection 001</span>
+              <strong id="detailPrice">$65.00</strong>
+            </div>
+            <h2 id="detailName">Oversized Heavyweight Tee</h2>
+            <p id="detailSummary">A boxy silhouette with dropped shoulders, made for disconnected focus and heavyweight structure.</p>
+          </div>
+
+          <div class="spec-grid" id="specGrid"></div>
+
+          <div class="size-row">
+            <div class="size-row-heading">
+              <span>Select size</span>
+              <button type="button">Size guide</button>
+            </div>
+            <div class="size-options" id="sizeOptions" aria-label="Sizes"></div>
+          </div>
+
+          <div class="accordion-set" aria-label="Product notes">
+            <details open>
+              <summary>
+                <span>Design note</span>
+                <svg><use href="#icon-minus"></use></svg>
+              </summary>
+              <p id="detailNote">The No Signal tee features a boxy silhouette with dropped shoulders. Designed for a disconnected feel in a noisy world.</p>
+            </details>
+            <details>
+              <summary>
+                <span>Care instructions</span>
+                <svg><use href="#icon-plus"></use></svg>
+              </summary>
+              <p>Cold wash inside out. Hang dry. Avoid bleach and high heat to preserve the garment finish.</p>
+            </details>
+          </div>
+
+          <button class="primary-command" type="button" id="addToBag">Add to bag</button>
+        </section>
+
+        <section class="bag-panel" aria-label="Bag and checkout">
+          <div class="panel-heading">
+            <div>
+              <p class="micro-label">Current order</p>
+              <h2>Bag</h2>
+            </div>
+            <span class="status-pill">Live drop</span>
+          </div>
+          <div class="bag-state" id="bagState">
+            <svg><use href="#icon-bag"></use></svg>
+            <p>No pieces added</p>
+            <span>Select a size and add your first MG69 piece.</span>
+          </div>
+          <div class="bag-items" id="bagItems"></div>
+          <div class="checkout-summary">
+            <div>
+              <span>Subtotal</span>
+              <strong id="subtotal">$0.00</strong>
+            </div>
+            <button class="primary-command compact" type="button">Checkout</button>
+          </div>
+        </section>
+
+        <section class="philosophy-panel" id="philosophy" aria-label="Brand philosophy">
+          <div class="philosophy-lede">
+            <p class="micro-label">Our philosophy</p>
+            <h2>Raw textures, intentional silhouettes, and the power of a minimal aesthetic.</h2>
+            <p>Pieces are designed to be your uniform for the future.</p>
+          </div>
+          <div class="philosophy-cards">
+            <article>
+              <svg><use href="#icon-stack"></use></svg>
+              <h3>Heavy construction</h3>
+              <p>240 GSM cotton and 380 GSM fleece with quality you feel the moment you put it on.</p>
+            </article>
+            <article>
+              <svg><use href="#icon-grid"></use></svg>
+              <h3>No signal</h3>
+              <p>Inspired by disconnected noise: minimal outside, bold inside.</p>
+            </article>
+            <article>
+              <svg><use href="#icon-spark"></use></svg>
+              <h3>Future fits</h3>
+              <p>Cyberpunk minimal aesthetics blended with timeless luxury streetwear silhouettes.</p>
+            </article>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>

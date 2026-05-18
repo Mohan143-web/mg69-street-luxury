@@ -11,26 +11,12 @@
   </head>
   <body>
     <svg class="icon-sprite" aria-hidden="true">
-      <symbol id="icon-menu" viewBox="0 0 24 24">
-        <path d="M4 7h16M4 12h16M4 17h16" />
-      </symbol>
-      <symbol id="icon-search" viewBox="0 0 24 24">
-        <path d="m21 21-4.3-4.3" />
-        <circle cx="11" cy="11" r="7" />
-      </symbol>
-      <symbol id="icon-heart" viewBox="0 0 24 24">
-        <path d="M19.2 5.3a5.1 5.1 0 0 0-7.2.2 5.1 5.1 0 0 0-7.2-.2 5.2 5.2 0 0 0 0 7.3L12 20l7.2-7.4a5.2 5.2 0 0 0 0-7.3Z" />
-      </symbol>
-      <symbol id="icon-bag" viewBox="0 0 24 24">
-        <path d="M6 8h12l-1 12H7L6 8Z" />
-        <path d="M9 8a3 3 0 0 1 6 0" />
-      </symbol>
-      <symbol id="icon-plus" viewBox="0 0 24 24">
-        <path d="M12 5v14M5 12h14" />
-      </symbol>
-      <symbol id="icon-minus" viewBox="0 0 24 24">
-        <path d="M5 12h14" />
-      </symbol>
+      <symbol id="icon-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16" /></symbol>
+      <symbol id="icon-search" viewBox="0 0 24 24"><path d="m21 21-4.3-4.3" /><circle cx="11" cy="11" r="7" /></symbol>
+      <symbol id="icon-heart" viewBox="0 0 24 24"><path d="M19.2 5.3a5.1 5.1 0 0 0-7.2.2 5.1 5.1 0 0 0-7.2-.2 5.2 5.2 0 0 0 0 7.3L12 20l7.2-7.4a5.2 5.2 0 0 0 0-7.3Z" /></symbol>
+      <symbol id="icon-bag" viewBox="0 0 24 24"><path d="M6 8h12l-1 12H7L6 8Z" /><path d="M9 8a3 3 0 0 1 6 0" /></symbol>
+      <symbol id="icon-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></symbol>
+      <symbol id="icon-minus" viewBox="0 0 24 24"><path d="M5 12h14" /></symbol>
     </svg>
 
     <div class="grain" aria-hidden="true"></div>
@@ -38,23 +24,20 @@
     <div class="chrome-line line-two" aria-hidden="true"></div>
 
     <header class="topbar" id="topbar">
-      <button class="icon-button menu-button" type="button" aria-label="Open menu">
+      <button class="icon-button menu-button" type="button" aria-label="Open menu" data-scroll-target="drop">
         <svg><use href="#icon-menu"></use></svg>
       </button>
       <a class="brand" href="#home" aria-label="MG69 home">MG69</a>
       <nav class="primary-nav" aria-label="Primary navigation">
-        <a href="#drop">Shop</a>
+        <a href="#drop" data-category-link="all">Shop</a>
+        <a href="#drop" data-category-link="men">Men</a>
+        <a href="#drop" data-category-link="women">Women</a>
         <a href="#lookbook">Lookbook</a>
         <a href="#about">About</a>
       </nav>
       <div class="top-actions">
-        <button class="icon-button" type="button" aria-label="Search collection">
-          <svg><use href="#icon-search"></use></svg>
-        </button>
-        <button class="bag-button" type="button" aria-label="View bag" data-scroll-target="checkout">
-          <svg><use href="#icon-bag"></use></svg>
-          <span id="bagCount">0</span>
-        </button>
+        <button class="icon-button" type="button" aria-label="Search collection" data-scroll-target="drop"><svg><use href="#icon-search"></use></svg></button>
+        <button class="bag-button" type="button" aria-label="View bag" data-scroll-target="checkout"><svg><use href="#icon-bag"></use></svg><span id="bagCount">0</span></button>
       </div>
     </header>
 
@@ -62,17 +45,10 @@
       <section class="hero" id="home" aria-label="MG69 cinematic hero">
         <div class="hero-bg image-crop crop-cover" aria-hidden="true"></div>
         <div class="hero-blur" aria-hidden="true"></div>
-        <div class="floating-copy" aria-hidden="true">
-          <span>No Signal</span>
-          <span>Drop 001</span>
-          <span>Matte Black</span>
-        </div>
+        <div class="floating-copy" aria-hidden="true"><span>No Signal</span><span>Drop 001</span><span>Matte Black</span></div>
         <div class="hero-content" data-reveal>
           <p class="eyebrow">Drop 001 / Street luxury</p>
-          <h1>
-            <span>MG69</span>
-            <span class="hero-sub"><span>Street</span> <span>Luxury</span> <span>Redefined</span></span>
-          </h1>
+          <h1><span>MG69</span><span class="hero-sub"><span>Street</span> <span>Luxury</span> <span>Redefined</span></span></h1>
           <button class="primary-command hero-command" type="button" data-scroll-target="drop">Shop Drop 001</button>
         </div>
       </section>
@@ -80,11 +56,7 @@
       <section class="manifesto" aria-label="Brand manifesto">
         <p data-reveal>Not for everyone</p>
         <h2 data-reveal>Built for the uncommon. No signal to noise.</h2>
-        <div class="manifesto-grid">
-          <span data-reveal>Matte black</span>
-          <span data-reveal>Heavy fabric</span>
-          <span data-reveal>Future uniform</span>
-        </div>
+        <div class="manifesto-grid"><span data-reveal>Matte black</span><span data-reveal>Heavy fabric</span><span data-reveal>Future uniform</span></div>
       </section>
 
       <section class="cinematic-band" aria-label="Drop 001 story">
@@ -97,30 +69,25 @@
       </section>
 
       <section class="lookbook-section" id="lookbook" aria-label="MG69 lookbook">
-        <div class="section-heading" data-reveal>
-          <p class="eyebrow">Lookbook</p>
-          <h2>Editorial shadows, concrete texture, silver light.</h2>
-        </div>
+        <div class="section-heading" data-reveal><p class="eyebrow">Lookbook</p><h2>Editorial shadows, concrete texture, silver light.</h2></div>
         <div class="lookbook-grid">
-          <article class="lookbook-card tall" data-reveal>
-            <div class="image-crop crop-hoodie"></div>
-            <span>Midnight volume</span>
-          </article>
-          <article class="lookbook-card" data-reveal>
-            <div class="image-crop crop-cover"></div>
-            <span>Signal black</span>
-          </article>
-          <article class="lookbook-card wide" data-reveal>
-            <div class="image-crop crop-fabric"></div>
-            <span>Chrome silence</span>
-          </article>
+          <article class="lookbook-card tall" data-reveal><div class="image-crop crop-hoodie"></div><span>Midnight volume</span></article>
+          <article class="lookbook-card" data-reveal><div class="image-crop crop-cover"></div><span>Signal black</span></article>
+          <article class="lookbook-card wide" data-reveal><div class="image-crop crop-fabric"></div><span>Chrome silence</span></article>
         </div>
       </section>
 
       <section class="shop-section" id="drop" aria-label="Shop Drop 001">
-        <div class="section-heading" data-reveal>
-          <p class="eyebrow">Collection 001</p>
-          <h2>Drop 001</h2>
+        <div class="section-heading shop-heading" data-reveal>
+          <div>
+            <p class="eyebrow">Collection 001</p>
+            <h2 id="collectionTitle">Drop 001</h2>
+          </div>
+          <div class="category-tabs" aria-label="Shop categories">
+            <button class="filter-pill selected" type="button" data-category="all">All</button>
+            <button class="filter-pill" type="button" data-category="men">Men</button>
+            <button class="filter-pill" type="button" data-category="women">Women</button>
+          </div>
         </div>
         <div class="product-list" id="productList"></div>
       </section>
@@ -129,96 +96,56 @@
         <div class="detail-panel" data-reveal>
           <div class="detail-image-wrap">
             <div class="image-crop detail-image" id="detailImage"></div>
-            <button class="icon-button favorite-floating" type="button" id="detailFavorite" aria-label="Favorite selected piece">
-              <svg><use href="#icon-heart"></use></svg>
-            </button>
+            <button class="icon-button favorite-floating" type="button" id="detailFavorite" aria-label="Favorite selected piece"><svg><use href="#icon-heart"></use></svg></button>
           </div>
 
           <div class="detail-copy">
-            <div class="detail-kicker">
-              <span id="detailCollection">Collection 001</span>
-              <strong id="detailPrice">$65.00</strong>
-            </div>
+            <div class="detail-kicker"><span id="detailCollection">Collection 001</span><strong id="detailPrice">$65.00</strong></div>
             <h2 id="detailName">Oversized Heavyweight Tee</h2>
             <p id="detailSummary">A boxy silhouette with dropped shoulders, made for disconnected focus and heavyweight structure.</p>
           </div>
 
           <div class="spec-grid" id="specGrid"></div>
 
+          <div class="option-row">
+            <div class="size-row-heading"><span>Select color</span><button type="button" data-scroll-target="drop">Change product</button></div>
+            <div class="color-options" id="colorOptions" aria-label="Colors"></div>
+          </div>
+
           <div class="size-row">
-            <div class="size-row-heading">
-              <span>Select size</span>
-              <button type="button">Size guide</button>
-            </div>
+            <div class="size-row-heading"><span>Select size</span><button type="button" id="sizeGuideButton">Size guide</button></div>
             <div class="size-options" id="sizeOptions" aria-label="Sizes"></div>
           </div>
 
           <div class="accordion-set" aria-label="Product notes">
-            <details open>
-              <summary>
-                <span>Design note</span>
-                <svg><use href="#icon-minus"></use></svg>
-              </summary>
-              <p id="detailNote">The No Signal tee features a boxy silhouette with dropped shoulders. Designed for a disconnected feel in a noisy world.</p>
-            </details>
-            <details>
-              <summary>
-                <span>Care instructions</span>
-                <svg><use href="#icon-plus"></use></svg>
-              </summary>
-              <p>Cold wash inside out. Hang dry. Avoid bleach and high heat to preserve the garment finish.</p>
-            </details>
+            <details open><summary><span>Design note</span><svg><use href="#icon-minus"></use></svg></summary><p id="detailNote">The No Signal tee features a boxy silhouette with dropped shoulders. Designed for a disconnected feel in a noisy world.</p></details>
+            <details><summary><span>Care instructions</span><svg><use href="#icon-plus"></use></svg></summary><p>Cold wash inside out. Hang dry. Avoid bleach and high heat to preserve the garment finish.</p></details>
           </div>
 
           <button class="primary-command" type="button" id="addToBag">Add to bag</button>
         </div>
 
         <aside class="bag-panel" id="checkout" aria-label="Bag and checkout" data-reveal>
-          <div class="panel-heading">
-            <div>
-              <p class="eyebrow">Current order</p>
-              <h2>Bag</h2>
-            </div>
-            <span class="status-pill">Live drop</span>
-          </div>
-          <div class="bag-state" id="bagState">
-            <svg><use href="#icon-bag"></use></svg>
-            <p>No pieces added</p>
-            <span>Select a size and add your first MG69 piece.</span>
-          </div>
+          <div class="panel-heading"><div><p class="eyebrow">Current order</p><h2>Bag</h2></div><span class="status-pill">Saved cart</span></div>
+          <div class="bag-state" id="bagState"><svg><use href="#icon-bag"></use></svg><p>No pieces added</p><span>Select size, color, and add your first MG69 piece.</span></div>
           <div class="bag-items" id="bagItems"></div>
-          <div class="checkout-summary">
-            <div>
-              <span>Subtotal</span>
-              <strong id="subtotal">$0.00</strong>
-            </div>
-            <button class="primary-command compact" type="button">Checkout</button>
-          </div>
+          <div class="checkout-summary"><div><span>Subtotal</span><strong id="subtotal">$0.00</strong></div><button class="primary-command compact" type="button" id="checkoutButton">Checkout</button></div>
+          <form class="checkout-form" id="checkoutForm" aria-label="Checkout form">
+            <input id="customerName" type="text" placeholder="Full name" autocomplete="name" />
+            <input id="customerEmail" type="email" placeholder="Email" autocomplete="email" />
+            <textarea id="customerAddress" placeholder="Shipping address"></textarea>
+            <button class="primary-command compact" type="submit">Place demo order</button>
+          </form>
+          <p class="order-message" id="orderMessage" role="status"></p>
         </aside>
       </section>
 
       <section class="about-section" id="about" aria-label="Brand philosophy">
-        <div class="about-copy" data-reveal>
-          <p class="eyebrow">Our philosophy</p>
-          <h2>Luxury minimal streetwear for the future uniform.</h2>
-          <p>Raw textures. Intentional silhouettes. Heavy construction. Every piece is quiet until it enters the room.</p>
-        </div>
+        <div class="about-copy" data-reveal><p class="eyebrow">Our philosophy</p><h2>Luxury minimal streetwear for the future uniform.</h2><p>Raw textures. Intentional silhouettes. Heavy construction. Every piece is quiet until it enters the room.</p></div>
         <div class="about-cards">
-          <article data-reveal>
-            <span>01</span>
-            <h3>Heavy construction</h3>
-            <p>240 GSM cotton and 380 GSM fleece with structure you feel immediately.</p>
-          </article>
-          <article data-reveal>
-            <span>02</span>
-            <h3>No signal</h3>
-            <p>Minimal outside, bold inside. Designed to cut through visual noise.</p>
-          </article>
-          <article data-reveal>
-            <span>03</span>
-            <h3>Future fits</h3>
-            <p>Cyber-minimal references shaped into timeless luxury silhouettes.</p>
-          </article>
+          <article data-reveal><span>01</span><h3>Heavy construction</h3><p>240 GSM cotton and 380 GSM fleece with structure you feel immediately.</p></article>
+          <article data-reveal><span>02</span><h3>No signal</h3><p>Minimal outside, bold inside. Designed to cut through visual noise.</p></article>
+          <article data-reveal><span>03</span><h3>Future fits</h3><p>Cyber-minimal references shaped into timeless luxury silhouettes.</p></article>
         </div>
       </section>
     </main>

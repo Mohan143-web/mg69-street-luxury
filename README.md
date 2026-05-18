@@ -1,15 +1,38 @@
-# MG69 Street Luxury
+# MG69 Street Luxury Ecommerce
 
-A responsive static ecommerce prototype inspired by the FF Designer share preview for the MG69 street-luxury collection.
+React + Vite ecommerce storefront for MG69, built around a luxury minimal streetwear direction.
 
-## Local Preview
+## Frontend
 
 ```bash
-python3 -m http.server 4173
+npm install
+npm run dev
 ```
 
-Open `http://127.0.0.1:4173/`.
+Build output is written to `docs/` so GitHub Pages can serve the app from the `main` branch.
+
+```bash
+npm run build
+```
+
+## Backend Scaffold
+
+The `server/` folder contains an Express API scaffold with MongoDB/Mongoose models and a Stripe checkout-session endpoint.
+
+```bash
+cd server
+npm install
+npm run dev
+```
+
+Copy `.env.example` and fill in MongoDB Atlas, Stripe, and client URL values.
+
+## Data Models
+
+- `Products`: name, price, sizes, colors, category, collection, stock
+- `Orders`: customer, email, address, items, total, Stripe session, status
+- `Users`: name, email, auth provider id, wishlist
 
 ## Deploy
 
-This repo includes a GitHub Pages workflow. After pushing to GitHub, enable Pages with **GitHub Actions** as the source, then pushes to `main` will publish the site.
+GitHub Pages should be configured to serve from `main` / `docs`.

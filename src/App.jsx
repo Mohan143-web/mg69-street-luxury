@@ -1,14 +1,25 @@
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  BarChart3,
+  ClipboardList,
   Heart,
+  Home,
+  LayoutDashboard,
   Menu,
   Minus,
+  Package,
   Plus,
   Search,
+  Settings,
+  ShieldCheck,
   ShoppingBag,
   SlidersHorizontal,
   Sparkles,
-  User
+  Tags,
+  Truck,
+  User,
+  Users,
+  X
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { categories, collections, products } from "./data/products.js";
@@ -17,18 +28,29 @@ import { readStoredValue, writeStoredValue } from "./lib/storage.js";
 
 const money = (value) => `$${value.toFixed(2)}`;
 const previewImage = `${import.meta.env.BASE_URL}og-preview.png`;
-const brandLogo = `${import.meta.env.BASE_URL}brand/mg69-logo3.png`;
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const fallbackImage = products[0].image;
-const logoParticles = [
-  { x: "8%", y: "18%", size: "5px", delay: "0s" },
-  { x: "18%", y: "76%", size: "3px", delay: "0.8s" },
-  { x: "33%", y: "10%", size: "4px", delay: "1.3s" },
-  { x: "48%", y: "88%", size: "6px", delay: "0.4s" },
-  { x: "66%", y: "14%", size: "3px", delay: "1.8s" },
-  { x: "76%", y: "70%", size: "5px", delay: "0.2s" },
-  { x: "90%", y: "32%", size: "4px", delay: "1.1s" },
-  { x: "84%", y: "88%", size: "3px", delay: "2.2s" }
+
+const customerMenuItems = [
+  { label: "Home", href: "#home", icon: Home, note: "Main MG69 landing page" },
+  { label: "Shop", href: "#shop", icon: Search, note: "Browse all drops" },
+  { label: "Men", href: "#men", icon: User, note: "Men street luxury" },
+  { label: "Women", href: "#women", icon: Sparkles, note: "Women street luxury" },
+  { label: "Drop 001", href: "#drop-001", icon: Package, note: "Latest collection" },
+  { label: "Wishlist", href: "#shop", icon: Heart, note: "Saved favorites" },
+  { label: "Track Order", href: "#checkout", icon: Truck, note: "Shipping and order status" },
+  { label: "Checkout", href: "#checkout", icon: ShoppingBag, note: "Cart and payment" }
+];
+
+const adminMenuItems = [
+  { label: "Dashboard", href: "#admin", icon: LayoutDashboard, note: "Business overview" },
+  { label: "Products", href: "#admin", icon: Package, note: "Add and edit products" },
+  { label: "Inventory", href: "#admin", icon: ClipboardList, note: "Sizes, colors, stock" },
+  { label: "Orders", href: "#checkout", icon: ShoppingBag, note: "Order management" },
+  { label: "Customers", href: "#admin", icon: Users, note: "Customer profiles" },
+  { label: "Discounts", href: "#admin", icon: Tags, note: "Coupons and campaigns" },
+  { label: "Analytics", href: "#admin", icon: BarChart3, note: "Sales and traffic" },
+  { label: "Settings", href: "#admin", icon: Settings, note: "Store configuration" }
 ];
 
 function normalizeProduct(product) {
@@ -72,6 +94,8 @@ function App() {
   const [wishlist, setWishlist] = usePersistentState("mg69-wishlist", []);
   const [orderMessage, setOrderMessage] = useState("");
   const [route, setRoute] = useState(window.location.hash.replace("#", "") || "home");
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [menuMode, setMenuMode] = useState("customer");
 
   const selectedProduct = catalog.find((product) => product.id === selectedProductId) || catalog[0] || products[0];
 
@@ -91,6 +115,11 @@ function App() {
     window.addEventListener("hashchange", handleHash);
     return () => window.removeEventListener("hashchange", handleHash);
   }, []);
+
+  useEffect(() => {
+    document.body.classList.toggle("menu-open", isMenuOpen);
+    return () => document.body.classList.remove("menu-open");
+  }, [isMenuOpen]);
 
   useEffect(() => {
     let isMounted = true;
@@ -120,16 +149,19 @@ function App() {
     if (route === "men") {
       setActiveCategory("Men");
       setActiveCollection("All");
+      window.location.hash = "shop";
     }
 
     if (route === "women") {
       setActiveCategory("Women");
       setActiveCollection("All");
+      window.location.hash = "shop";
     }
 
     if (route === "drop-001") {
       setActiveCategory("All");
       setActiveCollection("Drop 001");
+      window.location.hash = "shop";
     }
   }, [route]);
 
@@ -138,6 +170,11 @@ function App() {
     setSelectedColor(selectedProduct.colors[0].name);
     setSelectedQuantity(1);
   }, [selectedProduct.id]);
+
+  function openMenu(mode = "customer") {
+    setMenuMode(mode);
+    setIsMenuOpen(true);
+  }
 
   function selectProduct(product) {
     setSelectedProductId(product.id);
@@ -243,12 +280,20 @@ function App() {
 
   return (
     <div className="app" style={{ "--preview": `url(${previewImage})` }}>
-      <LuxuryLoader />
       <div className="grain" aria-hidden="true" />
-      <Header itemCount={itemCount} route={route} />
+      <Header itemCount={itemCount} route={route} onOpenMenu={openMenu} />
+      <HamburgerDrawer
+        cartCount={itemCount}
+        isOpen={isMenuOpen}
+        mode={menuMode}
+        onClose={() => setIsMenuOpen(false)}
+        onMode={setMenuMode}
+        productCount={catalog.length}
+        wishlistCount={wishlist.length}
+      />
 
       <main>
-        <Hero />
+        <Hero onOpenMenu={openMenu} />
         <CategoryNavigator
           activeCategory={activeCategory}
           activeCollection={activeCollection}
@@ -283,21 +328,12 @@ function App() {
         <AdminPanel catalogStatus={catalogStatus} products={catalog} />
       </main>
 
-      <MobileNav itemCount={itemCount} />
+      <MobileNav itemCount={itemCount} onOpenMenu={openMenu} />
     </div>
   );
 }
 
-function LuxuryLoader() {
-  return (
-    <div className="luxury-loader" aria-hidden="true">
-      <img alt="" src={brandLogo} />
-      <span>MG69</span>
-    </div>
-  );
-}
-
-function Header({ itemCount, route }) {
+function Header({ itemCount, route, onOpenMenu }) {
   const links = [
     ["home", "Home"],
     ["shop", "Shop"],
@@ -310,13 +346,10 @@ function Header({ itemCount, route }) {
 
   return (
     <header className="topbar">
-      <button className="icon-button menu-button" type="button" aria-label="Open menu">
+      <button className="icon-button menu-button" onClick={() => onOpenMenu("customer")} type="button" aria-label="Open menu">
         <Menu />
       </button>
-      <a className="brand" href="#home">
-        <img alt="" src={brandLogo} />
-        <span>MG69</span>
-      </a>
+      <a className="brand" href="#home">MG69</a>
       <nav className="primary-nav" aria-label="Primary navigation">
         {links.map(([target, label]) => (
           <a className={route === target ? "active" : ""} href={`#${target}`} key={target}>
@@ -325,8 +358,11 @@ function Header({ itemCount, route }) {
         ))}
       </nav>
       <div className="top-actions">
-        <button className="icon-button" type="button" aria-label="Search collection">
+        <button className="icon-button" onClick={() => onOpenMenu("customer")} type="button" aria-label="Search collection">
           <Search />
+        </button>
+        <button className="icon-button admin-trigger" onClick={() => onOpenMenu("admin")} type="button" aria-label="Open admin menu">
+          <ShieldCheck />
         </button>
         <a className="bag-button" href="#checkout" aria-label="View bag">
           <ShoppingBag />
@@ -337,55 +373,111 @@ function Header({ itemCount, route }) {
   );
 }
 
-function Hero() {
+function HamburgerDrawer({ cartCount, isOpen, mode, onClose, onMode, productCount, wishlistCount }) {
+  const menuItems = mode === "admin" ? adminMenuItems : customerMenuItems;
+  const stats = mode === "admin"
+    ? [
+        ["Products", productCount],
+        ["Orders", cartCount],
+        ["Mode", "Admin"]
+      ]
+    : [
+        ["Cart", cartCount],
+        ["Wishlist", wishlistCount],
+        ["Mode", "Customer"]
+      ];
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div className="drawer-shell" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+          <button className="drawer-backdrop" onClick={onClose} type="button" aria-label="Close menu" />
+          <motion.aside
+            className="hamburger-drawer"
+            initial={{ x: "-105%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "-105%" }}
+            transition={{ duration: 0.34, ease: "easeOut" }}
+            aria-label="MG69 navigation drawer"
+          >
+            <div className="drawer-top">
+              <div>
+                <p className="eyebrow">MG69 Interface</p>
+                <h2>{mode === "admin" ? "Admin Control" : "Customer Menu"}</h2>
+              </div>
+              <button className="icon-button" onClick={onClose} type="button" aria-label="Close menu">
+                <X />
+              </button>
+            </div>
+
+            <div className="interface-switch" role="tablist" aria-label="Interface selector">
+              <button className={mode === "customer" ? "active" : ""} onClick={() => onMode("customer")} type="button">
+                Customer
+              </button>
+              <button className={mode === "admin" ? "active" : ""} onClick={() => onMode("admin")} type="button">
+                Admin
+              </button>
+            </div>
+
+            <div className="drawer-stats">
+              {stats.map(([label, value]) => (
+                <div key={label}>
+                  <span>{label}</span>
+                  <strong>{value}</strong>
+                </div>
+              ))}
+            </div>
+
+            <nav className="drawer-nav" aria-label={`${mode} menu`}>
+              {menuItems.map(({ href, icon: Icon, label, note }) => (
+                <a href={href} key={label} onClick={onClose}>
+                  <Icon size={20} />
+                  <span>
+                    <strong>{label}</strong>
+                    <small>{note}</small>
+                  </span>
+                </a>
+              ))}
+            </nav>
+
+            <div className="drawer-action-card">
+              <p className="eyebrow">Next setup</p>
+              <h3>{mode === "admin" ? "Connect database + admin login" : "Enable login + order tracking"}</h3>
+              <p>
+                {mode === "admin"
+                  ? "Ready for product upload, stock control, discounts, analytics, and order management."
+                  : "Ready for customer profile, saved cart, wishlist, tracking, and checkout experience."}
+              </p>
+            </div>
+          </motion.aside>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+function Hero({ onOpenMenu }) {
   return (
     <section className="hero" id="home">
-      <div className="hero-cream-field" aria-hidden="true" />
-      <div className="hero-gold-beam" aria-hidden="true" />
+      <div className="hero-bg image-crop crop-cover" aria-hidden="true" />
+      <div className="hero-glass" aria-hidden="true" />
       <motion.div
-        className="hero-content hero-layout"
+        className="hero-content"
         initial={{ opacity: 0, y: 32 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, ease: "easeOut" }}
       >
-        <div className="hero-copy">
-          <p className="eyebrow">Royal streetwear / Drop 001</p>
-          <h1>
-            <span>MG69</span>
-            <span>Street Luxury Redefined</span>
-          </h1>
-          <p className="hero-line">Cream, black, and gold pieces built for uncommon presence.</p>
-          <div className="hero-actions">
-            <a className="primary-command hero-command" href="#shop">Shop Drop 001</a>
-            <a className="secondary-command" href="#lookbook">View lookbook</a>
-          </div>
-          <div className="hero-stat-row" aria-label="MG69 brand pillars">
-            <span>Metallic gold</span>
-            <span>Matte black</span>
-            <span>Royal street</span>
-          </div>
+        <p className="eyebrow">Drop 001 / Street luxury</p>
+        <h1>
+          <span>MG69</span>
+          <span>Street</span>
+          <span>Luxury</span>
+          <span>Redefined</span>
+        </h1>
+        <div className="hero-actions">
+          <a className="primary-command hero-command" href="#shop">Shop Drop 001</a>
+          <button className="secondary-command" onClick={() => onOpenMenu("customer")} type="button">Open Menu</button>
         </div>
-        <motion.div
-          className="logo-stage"
-          animate={{ y: [0, -10, 0], rotate: [0, 0.4, 0] }}
-          transition={{ duration: 7.5, ease: "easeInOut", repeat: Infinity }}
-        >
-          <div className="logo-aura" aria-hidden="true" />
-          <div className="particle-field" aria-hidden="true">
-            {logoParticles.map((particle) => (
-              <span
-                key={`${particle.x}-${particle.y}`}
-                style={{
-                  "--particle-delay": particle.delay,
-                  "--particle-size": particle.size,
-                  "--particle-x": particle.x,
-                  "--particle-y": particle.y
-                }}
-              />
-            ))}
-          </div>
-          <img className="hero-logo" alt="MG69 Street Luxury Redefined gold crest logo" src={brandLogo} />
-        </motion.div>
       </motion.div>
     </section>
   );
@@ -398,12 +490,7 @@ function CategoryNavigator({ activeCategory, activeCollection, onCategory, onCol
         <p className="eyebrow">Shop by category</p>
         <div className="segmented-control">
           {categories.map((category) => (
-            <button
-              className={activeCategory === category ? "active" : ""}
-              key={category}
-              onClick={() => onCategory(category)}
-              type="button"
-            >
+            <button className={activeCategory === category ? "active" : ""} key={category} onClick={() => onCategory(category)} type="button">
               {category}
             </button>
           ))}
@@ -413,12 +500,7 @@ function CategoryNavigator({ activeCategory, activeCollection, onCategory, onCol
         <p className="eyebrow">Collection filter</p>
         <div className="collection-tabs">
           {collections.map((collection) => (
-            <button
-              className={activeCollection === collection ? "active" : ""}
-              key={collection}
-              onClick={() => onCollection(collection)}
-              type="button"
-            >
+            <button className={activeCollection === collection ? "active" : ""} key={collection} onClick={() => onCollection(collection)} type="button">
               {collection}
             </button>
           ))}
@@ -441,28 +523,22 @@ function StorySections() {
         <motion.p initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>
           Not for everyone
         </motion.p>
-        <h2>Royal weight. Street discipline. No signal to noise.</h2>
+        <h2>Built for the uncommon. No signal to noise.</h2>
         <div className="manifesto-grid">
-          <span>Cream grounds</span>
-          <span>Gold accents</span>
-          <span>Black silhouettes</span>
+          <span>Matte black</span>
+          <span>Heavy fabric</span>
+          <span>Future uniform</span>
         </div>
       </section>
 
       <section className="lookbook-section" id="lookbook">
         <div className="section-heading">
           <p className="eyebrow">Lookbook reels</p>
-          <h2>Editorial shadows, leather texture, metallic light.</h2>
+          <h2>Editorial shadows, concrete texture, silver light.</h2>
         </div>
         <div className="lookbook-grid">
           {lookbookVisuals.map(({ image, label }) => (
-            <motion.article
-              className="lookbook-card"
-              initial={{ opacity: 0, y: 30 }}
-              key={label}
-              viewport={{ once: true, margin: "-80px" }}
-              whileInView={{ opacity: 1, y: 0 }}
-            >
+            <motion.article className="lookbook-card" initial={{ opacity: 0, y: 30 }} key={label} viewport={{ once: true, margin: "-80px" }} whileInView={{ opacity: 1, y: 0 }}>
               <img alt={`${label} MG69 lookbook`} src={image} loading="lazy" />
               <span>{label}</span>
             </motion.article>
@@ -504,13 +580,7 @@ function Shop({ products, selectedProductId, wishlist, onSelect, onWishlist }) {
 
 function ProductCard({ product, isSelected, isWishlisted, onSelect, onWishlist }) {
   return (
-    <motion.article
-      className={`product-card ${isSelected ? "selected" : ""}`}
-      layout
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.96 }}
-    >
+    <motion.article className={`product-card ${isSelected ? "selected" : ""}`} layout initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96 }}>
       <button className="product-thumb" onClick={onSelect} type="button">
         <img alt={`${product.name} front product shot`} src={product.image} loading="lazy" />
       </button>
@@ -560,27 +630,15 @@ function ProductStudio({
       <div className="detail-panel">
         <div className="detail-image-wrap">
           <div className="detail-image">
-            <img
-              alt={`${product.name} ${gallery.find((image) => image.src === activeImage)?.label || "product"} view`}
-              src={activeImage}
-            />
+            <img alt={`${product.name} ${gallery.find((image) => image.src === activeImage)?.label || "product"} view`} src={activeImage} />
           </div>
-          <button
-            className={`icon-button favorite-floating ${wishlist.includes(product.id) ? "active" : ""}`}
-            onClick={() => onWishlist(product.id)}
-            type="button"
-          >
+          <button className={`icon-button favorite-floating ${wishlist.includes(product.id) ? "active" : ""}`} onClick={() => onWishlist(product.id)} type="button">
             <Heart />
           </button>
         </div>
         <div className="product-gallery" aria-label={`${product.name} gallery`}>
           {gallery.map((image) => (
-            <button
-              className={activeImage === image.src ? "active" : ""}
-              key={image.src}
-              onClick={() => setActiveImage(image.src)}
-              type="button"
-            >
+            <button className={activeImage === image.src ? "active" : ""} key={image.src} onClick={() => setActiveImage(image.src)} type="button">
               <img alt={`${product.name} ${image.label} thumbnail`} src={image.src} loading="lazy" />
               <span>{image.label}</span>
             </button>
@@ -621,28 +679,12 @@ function ProductStudio({
         </div>
       </div>
 
-      <CartPanel
-        cart={cart}
-        orderMessage={orderMessage}
-        subtotal={subtotal}
-        onCheckout={onCheckout}
-        onQuantity={onQuantity}
-      />
+      <CartPanel cart={cart} orderMessage={orderMessage} subtotal={subtotal} onCheckout={onCheckout} onQuantity={onQuantity} />
     </section>
   );
 }
 
-function VariantSelector({
-  colors,
-  selectedColor,
-  selectedQuantity,
-  selectedSize,
-  sizes,
-  stock,
-  onColor,
-  onPurchaseQuantity,
-  onSize
-}) {
+function VariantSelector({ colors, selectedColor, selectedQuantity, selectedSize, sizes, stock, onColor, onPurchaseQuantity, onSize }) {
   return (
     <div className="variant-stack">
       <div>
@@ -652,13 +694,7 @@ function VariantSelector({
         </div>
         <div className="swatch-row">
           {colors.map((color) => (
-            <button
-              className={selectedColor === color.name ? "active" : ""}
-              key={color.name}
-              onClick={() => onColor(color.name)}
-              style={{ "--swatch": color.hex }}
-              type="button"
-            >
+            <button className={selectedColor === color.name ? "active" : ""} key={color.name} onClick={() => onColor(color.name)} style={{ "--swatch": color.hex }} type="button">
               <span />
             </button>
           ))}
@@ -672,12 +708,7 @@ function VariantSelector({
         </div>
         <div className="size-options">
           {sizes.map((size) => (
-            <button
-              className={selectedSize === size ? "selected" : ""}
-              key={size}
-              onClick={() => onSize(size)}
-              type="button"
-            >
+            <button className={selectedSize === size ? "selected" : ""} key={size} onClick={() => onSize(size)} type="button">
               {size}
             </button>
           ))}
@@ -690,21 +721,9 @@ function VariantSelector({
           <strong>{selectedSize} / {selectedColor}</strong>
         </div>
         <div className="quantity-control" aria-label="Quantity selector">
-          <button
-            disabled={selectedQuantity <= 1}
-            onClick={() => onPurchaseQuantity(Math.max(1, selectedQuantity - 1))}
-            type="button"
-          >
-            <Minus size={14} />
-          </button>
+          <button disabled={selectedQuantity <= 1} onClick={() => onPurchaseQuantity(Math.max(1, selectedQuantity - 1))} type="button"><Minus size={14} /></button>
           <strong>{selectedQuantity}</strong>
-          <button
-            disabled={selectedQuantity >= stock}
-            onClick={() => onPurchaseQuantity(Math.min(stock, selectedQuantity + 1))}
-            type="button"
-          >
-            <Plus size={14} />
-          </button>
+          <button disabled={selectedQuantity >= stock} onClick={() => onPurchaseQuantity(Math.min(stock, selectedQuantity + 1))} type="button"><Plus size={14} /></button>
         </div>
       </div>
     </div>
@@ -750,34 +769,12 @@ function CartPanel({ cart, subtotal, orderMessage, onQuantity, onCheckout }) {
       )}
 
       <form className="checkout-form" onSubmit={onCheckout}>
-        <label>
-          <span>Name</span>
-          <input name="name" placeholder="Mohan Rajendran" required />
-        </label>
-        <label>
-          <span>Email</span>
-          <input
-            autoComplete="email"
-            inputMode="email"
-            name="email"
-            pattern="[^\s@]+@[^\s@]+\.[^\s@]+"
-            placeholder="you@example.com"
-            required
-            type="text"
-          />
-        </label>
-        <label>
-          <span>Shipping address</span>
-          <textarea name="address" placeholder="Street, city, state, zip" required />
-        </label>
+        <label><span>Name</span><input name="name" placeholder="Mohan Rajendran" required /></label>
+        <label><span>Email</span><input autoComplete="email" inputMode="email" name="email" pattern="[^\s@]+@[^\s@]+\.[^\s@]+" placeholder="you@example.com" required type="text" /></label>
+        <label><span>Shipping address</span><textarea name="address" placeholder="Street, city, state, zip" required /></label>
         <div className="checkout-summary">
-          <div>
-            <span>Subtotal</span>
-            <strong>{money(subtotal)}</strong>
-          </div>
-          <button className="primary-command compact" disabled={cart.length === 0} type="submit">
-            Save order
-          </button>
+          <div><span>Subtotal</span><strong>{money(subtotal)}</strong></div>
+          <button className="primary-command compact" disabled={cart.length === 0} type="submit">Save order</button>
         </div>
       </form>
 
@@ -787,19 +784,32 @@ function CartPanel({ cart, subtotal, orderMessage, onQuantity, onCheckout }) {
 }
 
 function AdminPanel({ catalogStatus, products }) {
+  const totalStock = products.reduce((sum, product) => sum + product.stock, 0);
+  const averagePrice = products.length ? products.reduce((sum, product) => sum + product.price, 0) / products.length : 0;
+  const adminCards = [
+    ["Products", `${products.length} active styles`, "Add, edit, hide, and publish MG69 products."],
+    ["Inventory", `${totalStock} units`, "Manage size/color stock and low inventory alerts."],
+    ["Pricing", `${money(averagePrice)} avg`, "Control prices, discounts, coupons, and drops."],
+    ["Orders", "Checkout-ready", "Review saved orders and connect Stripe payments."],
+    ["Customers", "Profiles-ready", "Prepare login, wishlist, addresses, and customer history."],
+    ["Analytics", "Dashboard-ready", "Track revenue, conversion, traffic, and popular sizes."],
+    ["Shipping", "Fulfillment-ready", "Set delivery zones, order tracking, and return rules."],
+    ["Settings", catalogStatus === "database" ? "MongoDB live" : "Local fallback", "Connect API, database, payment, and admin login."]
+  ];
+
   return (
     <section className="admin-section" id="admin">
       <div className="section-heading">
-        <p className="eyebrow">Admin-ready</p>
-        <h2>Inventory structure</h2>
+        <p className="eyebrow">Admin interface</p>
+        <h2>Store control</h2>
         <span className="data-source-pill">{catalogStatus === "database" ? "MongoDB live" : "Local fallback"}</span>
       </div>
       <div className="admin-grid">
-        {products.map((product) => (
-          <article key={product.id}>
-            <span>{product.category}</span>
-            <h3>{product.name}</h3>
-            <p>{product.collection} / {product.stock} units / {money(product.price)}</p>
+        {adminCards.map(([title, stat, text]) => (
+          <article key={title}>
+            <span>{stat}</span>
+            <h3>{title}</h3>
+            <p>{text}</p>
           </article>
         ))}
       </div>
@@ -807,14 +817,13 @@ function AdminPanel({ catalogStatus, products }) {
   );
 }
 
-function MobileNav({ itemCount }) {
+function MobileNav({ itemCount, onOpenMenu }) {
   return (
     <nav className="mobile-nav" aria-label="Mobile navigation">
+      <button onClick={() => onOpenMenu("customer")} type="button"><Menu size={18} />Menu</button>
       <a href="#shop"><Search size={18} />Shop</a>
-      <a href="#men"><User size={18} />Men</a>
-      <a href="#women"><Sparkles size={18} />Women</a>
       <a href="#checkout"><ShoppingBag size={18} />Bag {itemCount}</a>
-      <a href="#admin"><User size={18} />Admin</a>
+      <button onClick={() => onOpenMenu("admin")} type="button"><ShieldCheck size={18} />Admin</button>
     </nav>
   );
 }

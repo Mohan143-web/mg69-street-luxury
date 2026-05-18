@@ -94,13 +94,18 @@ main,
   }
 
   .hero {
-    min-height: auto;
-    padding: 118px 14px 68px;
+    min-height: 100svh;
+    padding: 92px 14px 112px;
   }
 
-  .hero-content {
+  .hero-content,
+  .hero-layout {
     width: 100%;
     max-width: calc(100vw - 28px);
+  }
+
+  .hero-layout {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .hero h1 {
@@ -110,7 +115,11 @@ main,
   }
 
   .hero h1 span:not(:first-child) {
-    font-size: clamp(2rem, 9.8vw, 3rem);
+    font-size: clamp(2.2rem, 10.8vw, 3.35rem);
+  }
+
+  .logo-stage {
+    max-width: calc(100vw - 28px);
   }
 
   .commerce-router,
@@ -166,6 +175,11 @@ main,
     font-size: 1.55rem;
   }
 
+  .brand img {
+    width: 30px;
+    height: 30px;
+  }
+
   .hero {
     padding-top: 104px;
   }
@@ -176,6 +190,10 @@ main,
 
   .hero h1 span:not(:first-child) {
     font-size: clamp(1.75rem, 9vw, 2.6rem);
+  }
+
+  .logo-stage {
+    width: min(62vw, 240px);
   }
 
   .manifesto p {

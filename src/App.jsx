@@ -17,8 +17,19 @@ import { readStoredValue, writeStoredValue } from "./lib/storage.js";
 
 const money = (value) => `$${value.toFixed(2)}`;
 const previewImage = `${import.meta.env.BASE_URL}og-preview.png`;
+const brandLogo = `${import.meta.env.BASE_URL}brand/mg69-logo3.png`;
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const fallbackImage = products[0].image;
+const logoParticles = [
+  { x: "8%", y: "18%", size: "5px", delay: "0s" },
+  { x: "18%", y: "76%", size: "3px", delay: "0.8s" },
+  { x: "33%", y: "10%", size: "4px", delay: "1.3s" },
+  { x: "48%", y: "88%", size: "6px", delay: "0.4s" },
+  { x: "66%", y: "14%", size: "3px", delay: "1.8s" },
+  { x: "76%", y: "70%", size: "5px", delay: "0.2s" },
+  { x: "90%", y: "32%", size: "4px", delay: "1.1s" },
+  { x: "84%", y: "88%", size: "3px", delay: "2.2s" }
+];
 
 function normalizeProduct(product) {
   const image = product.image || product.imageUrl || product.images?.[0]?.src || fallbackImage;
@@ -232,6 +243,7 @@ function App() {
 
   return (
     <div className="app" style={{ "--preview": `url(${previewImage})` }}>
+      <LuxuryLoader />
       <div className="grain" aria-hidden="true" />
       <Header itemCount={itemCount} route={route} />
 
@@ -276,6 +288,15 @@ function App() {
   );
 }
 
+function LuxuryLoader() {
+  return (
+    <div className="luxury-loader" aria-hidden="true">
+      <img alt="" src={brandLogo} />
+      <span>MG69</span>
+    </div>
+  );
+}
+
 function Header({ itemCount, route }) {
   const links = [
     ["home", "Home"],
@@ -292,7 +313,10 @@ function Header({ itemCount, route }) {
       <button className="icon-button menu-button" type="button" aria-label="Open menu">
         <Menu />
       </button>
-      <a className="brand" href="#home">MG69</a>
+      <a className="brand" href="#home">
+        <img alt="" src={brandLogo} />
+        <span>MG69</span>
+      </a>
       <nav className="primary-nav" aria-label="Primary navigation">
         {links.map(([target, label]) => (
           <a className={route === target ? "active" : ""} href={`#${target}`} key={target}>
@@ -316,22 +340,52 @@ function Header({ itemCount, route }) {
 function Hero() {
   return (
     <section className="hero" id="home">
-      <div className="hero-bg image-crop crop-cover" aria-hidden="true" />
-      <div className="hero-glass" aria-hidden="true" />
+      <div className="hero-cream-field" aria-hidden="true" />
+      <div className="hero-gold-beam" aria-hidden="true" />
       <motion.div
-        className="hero-content"
+        className="hero-content hero-layout"
         initial={{ opacity: 0, y: 32 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, ease: "easeOut" }}
       >
-        <p className="eyebrow">Drop 001 / Street luxury</p>
-        <h1>
-          <span>MG69</span>
-          <span>Street</span>
-          <span>Luxury</span>
-          <span>Redefined</span>
-        </h1>
-        <a className="primary-command hero-command" href="#shop">Shop Drop 001</a>
+        <div className="hero-copy">
+          <p className="eyebrow">Royal streetwear / Drop 001</p>
+          <h1>
+            <span>MG69</span>
+            <span>Street Luxury Redefined</span>
+          </h1>
+          <p className="hero-line">Cream, black, and gold pieces built for uncommon presence.</p>
+          <div className="hero-actions">
+            <a className="primary-command hero-command" href="#shop">Shop Drop 001</a>
+            <a className="secondary-command" href="#lookbook">View lookbook</a>
+          </div>
+          <div className="hero-stat-row" aria-label="MG69 brand pillars">
+            <span>Metallic gold</span>
+            <span>Matte black</span>
+            <span>Royal street</span>
+          </div>
+        </div>
+        <motion.div
+          className="logo-stage"
+          animate={{ y: [0, -10, 0], rotate: [0, 0.4, 0] }}
+          transition={{ duration: 7.5, ease: "easeInOut", repeat: Infinity }}
+        >
+          <div className="logo-aura" aria-hidden="true" />
+          <div className="particle-field" aria-hidden="true">
+            {logoParticles.map((particle) => (
+              <span
+                key={`${particle.x}-${particle.y}`}
+                style={{
+                  "--particle-delay": particle.delay,
+                  "--particle-size": particle.size,
+                  "--particle-x": particle.x,
+                  "--particle-y": particle.y
+                }}
+              />
+            ))}
+          </div>
+          <img className="hero-logo" alt="MG69 Street Luxury Redefined gold crest logo" src={brandLogo} />
+        </motion.div>
       </motion.div>
     </section>
   );
@@ -387,18 +441,18 @@ function StorySections() {
         <motion.p initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>
           Not for everyone
         </motion.p>
-        <h2>Built for the uncommon. No signal to noise.</h2>
+        <h2>Royal weight. Street discipline. No signal to noise.</h2>
         <div className="manifesto-grid">
-          <span>Matte black</span>
-          <span>Heavy fabric</span>
-          <span>Future uniform</span>
+          <span>Cream grounds</span>
+          <span>Gold accents</span>
+          <span>Black silhouettes</span>
         </div>
       </section>
 
       <section className="lookbook-section" id="lookbook">
         <div className="section-heading">
           <p className="eyebrow">Lookbook reels</p>
-          <h2>Editorial shadows, concrete texture, silver light.</h2>
+          <h2>Editorial shadows, leather texture, metallic light.</h2>
         </div>
         <div className="lookbook-grid">
           {lookbookVisuals.map(({ image, label }) => (

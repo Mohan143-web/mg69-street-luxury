@@ -7,3 +7,7 @@ node_modules/
 server/node_modules/
 dist/
 .DS_Store
+.env 2.example
+package 2.json
+server/package 2.json
+vite.config 2.js

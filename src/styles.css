@@ -443,6 +443,18 @@ button {
   margin-bottom: 34px;
 }
 
+.data-source-pill {
+  width: fit-content;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--silver);
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
 .lookbook-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -466,15 +478,18 @@ button {
   overflow: hidden;
 }
 
-.lookbook-card .image-crop {
+.lookbook-card img {
   position: absolute;
   inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
   filter: grayscale(1) contrast(1.1) brightness(0.74);
   transform: scale(1.04);
   transition: transform 0.8s ease, filter 0.8s ease;
 }
 
-.lookbook-card:hover .image-crop {
+.lookbook-card:hover img {
   filter: grayscale(0.82) contrast(1.16) brightness(0.84);
   transform: scale(1.12);
 }
@@ -544,13 +559,20 @@ button {
   width: 100%;
   border: 0;
   background-color: var(--matte);
+  overflow: hidden;
+}
+
+.product-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
   filter: grayscale(1) contrast(1.1) brightness(0.76);
   transform: scale(1.02);
   transition: transform 0.8s ease, filter 0.8s ease;
 }
 
-.product-card:hover .product-thumb,
-.product-card.selected .product-thumb {
+.product-card:hover .product-thumb img,
+.product-card.selected .product-thumb img {
   filter: grayscale(0.78) contrast(1.1) brightness(0.86);
   transform: scale(1.1);
 }
@@ -650,6 +672,7 @@ button {
 }
 
 .detail-image-wrap {
+  grid-column: 1;
   position: relative;
   min-height: 670px;
   border-radius: 6px;
@@ -660,11 +683,53 @@ button {
 .detail-image {
   position: absolute;
   inset: 0;
+  overflow: hidden;
   filter: grayscale(0.82) contrast(1.1);
 }
 
-.detail-image.crop-tee {
-  background-position: 48% 27%;
+.detail-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.01);
+}
+
+.product-gallery {
+  grid-column: 1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.product-gallery button {
+  display: grid;
+  grid-template-columns: 54px 1fr;
+  align-items: center;
+  gap: 10px;
+  min-height: 62px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: rgba(5, 5, 5, 0.4);
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.product-gallery button.active {
+  border-color: rgba(239, 235, 224, 0.54);
+  color: var(--cream);
+}
+
+.product-gallery img {
+  width: 54px;
+  height: 48px;
+  border-radius: 4px;
+  object-fit: cover;
+  filter: grayscale(0.9);
 }
 
 .favorite-floating {
@@ -676,6 +741,8 @@ button {
 }
 
 .detail-body {
+  grid-column: 2;
+  grid-row: 1 / span 2;
   display: grid;
   align-content: start;
   gap: 16px;
@@ -792,6 +859,58 @@ button {
   color: var(--black);
 }
 
+.purchase-controls {
+  display: grid;
+  gap: 10px;
+}
+
+.stock-strip {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: rgba(5, 5, 5, 0.32);
+  color: var(--silver);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.stock-strip strong {
+  color: var(--off-white);
+}
+
+.quantity-control {
+  display: grid;
+  grid-template-columns: 46px 1fr 46px;
+  align-items: center;
+  max-width: 190px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.quantity-control button,
+.quantity-stepper button {
+  display: grid;
+  place-items: center;
+  min-height: 42px;
+  background: transparent;
+  color: var(--cream);
+}
+
+.quantity-control button:disabled {
+  color: rgba(201, 198, 188, 0.35);
+  cursor: not-allowed;
+}
+
+.quantity-control strong {
+  text-align: center;
+}
+
 .primary-command.full {
   width: 100%;
 }
@@ -878,7 +997,14 @@ button {
   width: 58px;
   height: 58px;
   border-radius: 4px;
+  overflow: hidden;
   filter: grayscale(0.9);
+}
+
+.bag-line-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .bag-line h3 {
@@ -1020,7 +1146,7 @@ button {
   left: 10px;
   z-index: 28;
   display: none;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 2px;
   padding: 6px;
   border: 1px solid var(--line);
@@ -1093,6 +1219,13 @@ button {
 
   .detail-panel {
     grid-template-columns: 1fr;
+  }
+
+  .detail-image-wrap,
+  .product-gallery,
+  .detail-body {
+    grid-column: auto;
+    grid-row: auto;
   }
 
   .detail-image-wrap {

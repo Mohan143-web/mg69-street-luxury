@@ -2,12 +2,14 @@ import cors from "cors";
 import "dotenv/config";
 import express from "express";
 import Stripe from "stripe";
+import { fallbackProducts } from "./data/fallbackProducts.js";
 import { connectDatabase } from "./db.js";
 import { Order } from "./models/Order.js";
 import { Product } from "./models/Product.js";
 
 const app = express();
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
+const hasDatabase = Boolean(process.env.MONGODB_URI);
 
 app.use(cors({ origin: process.env.CLIENT_URL || "*" }));
 app.use(express.json());
@@ -23,11 +25,30 @@ app.get("/api/products", async (request, response) => {
   if (category && category !== "All") filter.category = category;
   if (collection && collection !== "All") filter.collection = collection;
 
+  if (!hasDatabase) {
+    const products = fallbackProducts.filter((product) => {
+      const categoryMatch = !filter.category || product.category === filter.category;
+      const collectionMatch = !filter.collection || product.collection === filter.collection;
+      return product.active && categoryMatch && collectionMatch;
+    });
+    response.json(products);
+    return;
+  }
+
   const products = await Product.find(filter).sort({ createdAt: -1 });
   response.json(products);
 });
 
 app.post("/api/orders", async (request, response) => {
+  if (!hasDatabase) {
+    response.status(202).json({
+      ...request.body,
+      id: `local-${Date.now()}`,
+      status: "pending-payment"
+    });
+    return;
+  }
+
   const order = await Order.create({
     ...request.body,
     status: "pending-payment"
@@ -59,6 +80,17 @@ app.post("/api/checkout/session", async (request, response) => {
   });
 
   response.json({ url: session.url, id: session.id });
+});
+
+app.post("/api/products/seed", async (_request, response) => {
+  if (!hasDatabase) {
+    response.status(503).json({ error: "MongoDB is not configured. Set MONGODB_URI before seeding products." });
+    return;
+  }
+
+  await Product.deleteMany({});
+  const products = await Product.insertMany(fallbackProducts);
+  response.status(201).json({ count: products.length });
 });
 
 const port = process.env.PORT || 8080;

@@ -2,6 +2,8 @@ export const collections = ["All", "Drop 001", "Essentials", "Future Uniform"];
 
 export const categories = ["All", "Men", "Women"];
 
+const productAsset = (fileName) => `${import.meta.env.BASE_URL}products/${fileName}`;
+
 export const products = [
   {
     id: "mg69-heavyweight-tee",
@@ -12,6 +14,11 @@ export const products = [
     type: "Oversized Tee",
     stock: 20,
     imageClass: "crop-tee",
+    image: productAsset("oversized-heavyweight-tee.png"),
+    images: [
+      { label: "Front", src: productAsset("oversized-heavyweight-tee.png") },
+      { label: "Back", src: productAsset("oversized-heavyweight-tee-back.png") }
+    ],
     tagline: "Box fit. Dropped shoulder. Quiet weight.",
     description: "A 240 GSM cotton tee with a squared silhouette, clean neckline, and heavy fall through the body.",
     sizes: ["S", "M", "L", "XL"],
@@ -35,6 +42,11 @@ export const products = [
     type: "Heavy Hoodie",
     stock: 14,
     imageClass: "crop-hoodie",
+    image: productAsset("midnight-city-hoodie.png"),
+    images: [
+      { label: "Front", src: productAsset("midnight-city-hoodie.png") },
+      { label: "Back", src: productAsset("midnight-city-hoodie-back.png") }
+    ],
     tagline: "Dense fleece volume for cold concrete nights.",
     description: "A structured 380 GSM fleece hoodie with a heavy hood, ribbed edges, and a boxy luxury streetwear shape.",
     sizes: ["S", "M", "L", "XL", "XXL"],
@@ -58,6 +70,11 @@ export const products = [
     type: "Layered Jersey",
     stock: 18,
     imageClass: "crop-fabric",
+    image: productAsset("afterimage-jersey.png"),
+    images: [
+      { label: "Front", src: productAsset("afterimage-jersey.png") },
+      { label: "Back", src: productAsset("afterimage-jersey-back.png") }
+    ],
     tagline: "Low-glare layer. Soft structure. Clean stack.",
     description: "A quiet base layer with subtle texture, built to sit under jackets or carry a minimal full look.",
     sizes: ["XS", "S", "M", "L"],
@@ -81,6 +98,11 @@ export const products = [
     type: "Long Coat",
     stock: 8,
     imageClass: "crop-cover",
+    image: productAsset("signal-long-coat.png"),
+    images: [
+      { label: "Front", src: productAsset("signal-long-coat.png") },
+      { label: "Back", src: productAsset("signal-long-coat-back.png") }
+    ],
     tagline: "Clean line outerwear with cinematic weight.",
     description: "A long matte shell designed for editorial layering, sharp movement, and quiet street presence.",
     sizes: ["XS", "S", "M", "L"],

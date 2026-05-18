@@ -12,11 +12,31 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { categories, collections, products } from "./data/products.js";
+import { createCheckoutSession, fetchProducts, hasApi, saveOrder } from "./lib/api.js";
 import { readStoredValue, writeStoredValue } from "./lib/storage.js";
 
 const money = (value) => `$${value.toFixed(2)}`;
 const previewImage = `${import.meta.env.BASE_URL}og-preview.png`;
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const fallbackImage = products[0].image;
+
+function normalizeProduct(product) {
+  const image = product.image || product.imageUrl || product.images?.[0]?.src || fallbackImage;
+
+  return {
+    ...product,
+    id: product.id || product._id,
+    colors: (product.colors?.length ? product.colors : [{ name: "Matte Black", hex: "#080807" }]).map((color) =>
+      typeof color === "string" ? { name: color, hex: "#080807" } : color
+    ),
+    image,
+    images: product.images?.length ? product.images : [{ label: "Front", src: image }],
+    sizes: product.sizes?.length ? product.sizes : ["S", "M", "L"],
+    specs: product.specs || { Fit: product.type || "Ready to wear", Stock: `${product.stock || 0} units` },
+    stock: product.stock || 0,
+    tags: product.tags || []
+  };
+}
 
 function usePersistentState(key, fallback) {
   const [value, setValue] = useState(() => readStoredValue(key, fallback));
@@ -29,25 +49,28 @@ function usePersistentState(key, fallback) {
 }
 
 function App() {
+  const [catalog, setCatalog] = useState(products);
+  const [catalogStatus, setCatalogStatus] = useState(hasApi ? "connecting" : "local");
   const [activeCategory, setActiveCategory] = useState("All");
   const [activeCollection, setActiveCollection] = useState("All");
   const [selectedProductId, setSelectedProductId] = useState(products[0].id);
   const [selectedSize, setSelectedSize] = useState(products[0].sizes[1]);
   const [selectedColor, setSelectedColor] = useState(products[0].colors[0].name);
+  const [selectedQuantity, setSelectedQuantity] = useState(1);
   const [cart, setCart] = usePersistentState("mg69-cart", []);
   const [wishlist, setWishlist] = usePersistentState("mg69-wishlist", []);
   const [orderMessage, setOrderMessage] = useState("");
   const [route, setRoute] = useState(window.location.hash.replace("#", "") || "home");
 
-  const selectedProduct = products.find((product) => product.id === selectedProductId) || products[0];
+  const selectedProduct = catalog.find((product) => product.id === selectedProductId) || catalog[0] || products[0];
 
   const filteredProducts = useMemo(() => {
-    return products.filter((product) => {
+    return catalog.filter((product) => {
       const categoryMatch = activeCategory === "All" || product.category === activeCategory;
       const collectionMatch = activeCollection === "All" || product.collection === activeCollection;
       return categoryMatch && collectionMatch;
     });
-  }, [activeCategory, activeCollection]);
+  }, [activeCategory, activeCollection, catalog]);
 
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -59,8 +82,50 @@ function App() {
   }, []);
 
   useEffect(() => {
+    let isMounted = true;
+
+    async function loadCatalog() {
+      if (!hasApi) return;
+
+      try {
+        const apiProducts = await fetchProducts();
+        if (!isMounted || !apiProducts?.length) return;
+        const normalizedProducts = apiProducts.map(normalizeProduct);
+        setCatalog(normalizedProducts);
+        setSelectedProductId(normalizedProducts[0].id);
+        setCatalogStatus("database");
+      } catch {
+        if (isMounted) setCatalogStatus("local");
+      }
+    }
+
+    loadCatalog();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (route === "men") {
+      setActiveCategory("Men");
+      setActiveCollection("All");
+    }
+
+    if (route === "women") {
+      setActiveCategory("Women");
+      setActiveCollection("All");
+    }
+
+    if (route === "drop-001") {
+      setActiveCategory("All");
+      setActiveCollection("Drop 001");
+    }
+  }, [route]);
+
+  useEffect(() => {
     setSelectedSize(selectedProduct.sizes[0]);
     setSelectedColor(selectedProduct.colors[0].name);
+    setSelectedQuantity(1);
   }, [selectedProduct.id]);
 
   function selectProduct(product) {
@@ -69,6 +134,8 @@ function App() {
   }
 
   function addToCart() {
+    const requestedQuantity = Math.min(selectedQuantity, selectedProduct.stock);
+
     setCart((current) => {
       const existing = current.find(
         (item) => item.productId === selectedProduct.id && item.size === selectedSize && item.color === selectedColor
@@ -76,7 +143,9 @@ function App() {
 
       if (existing) {
         return current.map((item) =>
-          item.cartId === existing.cartId ? { ...item, quantity: item.quantity + 1 } : item
+          item.cartId === existing.cartId
+            ? { ...item, quantity: Math.min(selectedProduct.stock, item.quantity + requestedQuantity) }
+            : item
         );
       }
 
@@ -89,7 +158,9 @@ function App() {
           price: selectedProduct.price,
           size: selectedSize,
           color: selectedColor,
-          quantity: 1,
+          quantity: requestedQuantity,
+          stock: selectedProduct.stock,
+          image: selectedProduct.image,
           imageClass: selectedProduct.imageClass
         }
       ];
@@ -99,7 +170,11 @@ function App() {
   function updateQuantity(cartId, delta) {
     setCart((current) =>
       current
-        .map((item) => (item.cartId === cartId ? { ...item, quantity: item.quantity + delta } : item))
+        .map((item) => {
+          if (item.cartId !== cartId) return item;
+          const stockLimit = item.stock || catalog.find((product) => product.id === item.productId)?.stock || 99;
+          return { ...item, quantity: Math.min(stockLimit, item.quantity + delta) };
+        })
         .filter((item) => item.quantity > 0)
     );
   }
@@ -110,7 +185,7 @@ function App() {
     );
   }
 
-  function handleCheckout(event) {
+  async function handleCheckout(event) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const customerName = String(form.get("name") || "").trim();
@@ -133,7 +208,26 @@ function App() {
     };
 
     writeStoredValue("mg69-last-order", order);
-    setOrderMessage(`Order draft saved for ${order.customerName}. Stripe checkout is ready to connect.`);
+    setOrderMessage(`Order draft saved for ${order.customerName}.`);
+
+    if (!hasApi) {
+      setOrderMessage(`Order draft saved for ${order.customerName}. Connect VITE_API_URL to enable Stripe checkout.`);
+      return;
+    }
+
+    try {
+      await saveOrder(order);
+      const session = await createCheckoutSession({ customerEmail: email, items: cart });
+
+      if (session?.url) {
+        window.location.href = session.url;
+        return;
+      }
+
+      setOrderMessage(`Order saved for ${order.customerName}. Stripe session is pending configuration.`);
+    } catch {
+      setOrderMessage(`Order draft saved locally for ${order.customerName}. API checkout is not reachable yet.`);
+    }
   }
 
   return (
@@ -161,18 +255,20 @@ function App() {
           product={selectedProduct}
           selectedSize={selectedSize}
           selectedColor={selectedColor}
+          selectedQuantity={selectedQuantity}
           cart={cart}
           subtotal={subtotal}
           orderMessage={orderMessage}
           onSize={setSelectedSize}
           onColor={setSelectedColor}
+          onPurchaseQuantity={setSelectedQuantity}
           onAdd={addToCart}
           onQuantity={updateQuantity}
           onCheckout={handleCheckout}
           wishlist={wishlist}
           onWishlist={toggleWishlist}
         />
-        <AdminPanel />
+        <AdminPanel catalogStatus={catalogStatus} products={catalog} />
       </main>
 
       <MobileNav itemCount={itemCount} />
@@ -184,6 +280,9 @@ function Header({ itemCount, route }) {
   const links = [
     ["home", "Home"],
     ["shop", "Shop"],
+    ["men", "Men"],
+    ["women", "Women"],
+    ["drop-001", "Drop 001"],
     ["lookbook", "Lookbook"],
     ["checkout", "Checkout"]
   ];
@@ -276,6 +375,12 @@ function CategoryNavigator({ activeCategory, activeCollection, onCategory, onCol
 }
 
 function StorySections() {
+  const lookbookVisuals = [
+    { image: products[1].image, label: "Midnight volume" },
+    { image: products[3].image, label: "Signal black" },
+    { image: products[2].image, label: "Bone cream" }
+  ];
+
   return (
     <>
       <section className="manifesto">
@@ -296,11 +401,7 @@ function StorySections() {
           <h2>Editorial shadows, concrete texture, silver light.</h2>
         </div>
         <div className="lookbook-grid">
-          {[
-            ["crop-hoodie", "Midnight volume"],
-            ["crop-cover", "Signal black"],
-            ["crop-fabric", "Chrome silence"]
-          ].map(([imageClass, label]) => (
+          {lookbookVisuals.map(({ image, label }) => (
             <motion.article
               className="lookbook-card"
               initial={{ opacity: 0, y: 30 }}
@@ -308,7 +409,7 @@ function StorySections() {
               viewport={{ once: true, margin: "-80px" }}
               whileInView={{ opacity: 1, y: 0 }}
             >
-              <div className={`image-crop ${imageClass}`} />
+              <img alt={`${label} MG69 lookbook`} src={image} loading="lazy" />
               <span>{label}</span>
             </motion.article>
           ))}
@@ -356,7 +457,9 @@ function ProductCard({ product, isSelected, isWishlisted, onSelect, onWishlist }
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.96 }}
     >
-      <button className={`product-thumb image-crop ${product.imageClass}`} onClick={onSelect} type="button" />
+      <button className="product-thumb" onClick={onSelect} type="button">
+        <img alt={`${product.name} front product shot`} src={product.image} loading="lazy" />
+      </button>
       <button className={`wish-button ${isWishlisted ? "active" : ""}`} onClick={onWishlist} type="button">
         <Heart size={18} />
       </button>
@@ -378,22 +481,36 @@ function ProductStudio({
   product,
   selectedSize,
   selectedColor,
+  selectedQuantity,
   cart,
   subtotal,
   orderMessage,
   onSize,
   onColor,
+  onPurchaseQuantity,
   onAdd,
   onQuantity,
   onCheckout,
   wishlist,
   onWishlist
 }) {
+  const gallery = product.images?.length ? product.images : [{ label: "Front", src: product.image }];
+  const [activeImage, setActiveImage] = useState(gallery[0].src);
+
+  useEffect(() => {
+    setActiveImage(gallery[0].src);
+  }, [product.id]);
+
   return (
     <section className="product-studio" id="product">
       <div className="detail-panel">
         <div className="detail-image-wrap">
-          <div className={`image-crop detail-image ${product.imageClass}`} />
+          <div className="detail-image">
+            <img
+              alt={`${product.name} ${gallery.find((image) => image.src === activeImage)?.label || "product"} view`}
+              src={activeImage}
+            />
+          </div>
           <button
             className={`icon-button favorite-floating ${wishlist.includes(product.id) ? "active" : ""}`}
             onClick={() => onWishlist(product.id)}
@@ -401,6 +518,19 @@ function ProductStudio({
           >
             <Heart />
           </button>
+        </div>
+        <div className="product-gallery" aria-label={`${product.name} gallery`}>
+          {gallery.map((image) => (
+            <button
+              className={activeImage === image.src ? "active" : ""}
+              key={image.src}
+              onClick={() => setActiveImage(image.src)}
+              type="button"
+            >
+              <img alt={`${product.name} ${image.label} thumbnail`} src={image.src} loading="lazy" />
+              <span>{image.label}</span>
+            </button>
+          ))}
         </div>
         <div className="detail-body">
           <div className="detail-kicker">
@@ -423,12 +553,17 @@ function ProductStudio({
             colors={product.colors}
             selectedColor={selectedColor}
             selectedSize={selectedSize}
+            selectedQuantity={selectedQuantity}
+            stock={product.stock}
             sizes={product.sizes}
             onColor={onColor}
+            onPurchaseQuantity={onPurchaseQuantity}
             onSize={onSize}
           />
 
-          <button className="primary-command full" onClick={onAdd} type="button">Add to cart</button>
+          <button className="primary-command full" onClick={onAdd} type="button">
+            Add {selectedQuantity} to cart
+          </button>
         </div>
       </div>
 
@@ -443,7 +578,17 @@ function ProductStudio({
   );
 }
 
-function VariantSelector({ colors, selectedColor, selectedSize, sizes, onColor, onSize }) {
+function VariantSelector({
+  colors,
+  selectedColor,
+  selectedQuantity,
+  selectedSize,
+  sizes,
+  stock,
+  onColor,
+  onPurchaseQuantity,
+  onSize
+}) {
   return (
     <div className="variant-stack">
       <div>
@@ -484,6 +629,30 @@ function VariantSelector({ colors, selectedColor, selectedSize, sizes, onColor, 
           ))}
         </div>
       </div>
+
+      <div className="purchase-controls">
+        <div className="stock-strip">
+          <span>{stock} pieces available</span>
+          <strong>{selectedSize} / {selectedColor}</strong>
+        </div>
+        <div className="quantity-control" aria-label="Quantity selector">
+          <button
+            disabled={selectedQuantity <= 1}
+            onClick={() => onPurchaseQuantity(Math.max(1, selectedQuantity - 1))}
+            type="button"
+          >
+            <Minus size={14} />
+          </button>
+          <strong>{selectedQuantity}</strong>
+          <button
+            disabled={selectedQuantity >= stock}
+            onClick={() => onPurchaseQuantity(Math.min(stock, selectedQuantity + 1))}
+            type="button"
+          >
+            <Plus size={14} />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -509,7 +678,9 @@ function CartPanel({ cart, subtotal, orderMessage, onQuantity, onCheckout }) {
         <div className="bag-items">
           {cart.map((item) => (
             <article className="bag-line" key={item.cartId}>
-              <div className={`bag-line-image image-crop ${item.imageClass}`} />
+              <div className={`bag-line-image ${item.image ? "" : `image-crop ${item.imageClass || ""}`}`}>
+                {item.image && <img alt={`${item.name} cart preview`} src={item.image} loading="lazy" />}
+              </div>
               <div>
                 <h3>{item.name}</h3>
                 <span>{item.color} / {item.size}</span>
@@ -561,12 +732,13 @@ function CartPanel({ cart, subtotal, orderMessage, onQuantity, onCheckout }) {
   );
 }
 
-function AdminPanel() {
+function AdminPanel({ catalogStatus, products }) {
   return (
     <section className="admin-section" id="admin">
       <div className="section-heading">
         <p className="eyebrow">Admin-ready</p>
         <h2>Inventory structure</h2>
+        <span className="data-source-pill">{catalogStatus === "database" ? "MongoDB live" : "Local fallback"}</span>
       </div>
       <div className="admin-grid">
         {products.map((product) => (
@@ -585,7 +757,8 @@ function MobileNav({ itemCount }) {
   return (
     <nav className="mobile-nav" aria-label="Mobile navigation">
       <a href="#shop"><Search size={18} />Shop</a>
-      <a href="#lookbook"><Sparkles size={18} />Lookbook</a>
+      <a href="#men"><User size={18} />Men</a>
+      <a href="#women"><Sparkles size={18} />Women</a>
       <a href="#checkout"><ShoppingBag size={18} />Bag {itemCount}</a>
       <a href="#admin"><User size={18} />Admin</a>
     </nav>

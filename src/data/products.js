@@ -4,7 +4,38 @@ export const categories = ["All", "Men", "Women"];
 
 const productAsset = (fileName) => `${import.meta.env.BASE_URL}products/${fileName}`;
 
+const firstPieceFront = "DATA_FRONT_PLACEHOLDER";
+const firstPieceBack = "DATA_BACK_PLACEHOLDER";
+
 export const products = [
+  {
+    id: "mg69-first-piece-smile-hoodie",
+    name: "First Piece Smile Hoodie",
+    collection: "Drop 001",
+    price: 129,
+    category: "Men",
+    type: "Heavy Hoodie",
+    stock: 25,
+    imageClass: "crop-hoodie",
+    image: firstPieceFront,
+    images: [
+      { label: "Front", src: firstPieceFront },
+      { label: "Back", src: firstPieceBack }
+    ],
+    tagline: "Black heavyweight hoodie with gold MG69 front and smile message back.",
+    description: "The first official MG69 hoodie: a premium black pullover with a metallic gold MG69 front logo and the back statement, Hey hold on you forgot to smile today.",
+    sizes: ["S", "M", "L", "XL", "XXL"],
+    colors: [
+      { name: "Matte Black", hex: "#050505" },
+      { name: "Gold Print", hex: "#c89b2c" }
+    ],
+    specs: {
+      Fabric: "Cotton Fleece",
+      Weight: "380 GSM",
+      Fit: "Oversized"
+    },
+    tags: ["First Piece", "Smile Hoodie", "Drop 001", "Available"]
+  },
   {
     id: "mg69-heavyweight-tee",
     name: "Oversized Heavyweight Tee",

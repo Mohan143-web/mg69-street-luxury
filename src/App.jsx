@@ -41,6 +41,15 @@ const logoParticles = [
   { x: "90%", y: "32%", size: "4px", delay: "1.1s" },
   { x: "84%", y: "88%", size: "3px", delay: "2.2s" }
 ];
+const revealParticles = [
+  { x: "12%", y: "22%", size: "3px", delay: "0.1s" },
+  { x: "22%", y: "70%", size: "5px", delay: "0.7s" },
+  { x: "35%", y: "18%", size: "2px", delay: "1.2s" },
+  { x: "52%", y: "80%", size: "4px", delay: "0.4s" },
+  { x: "70%", y: "24%", size: "3px", delay: "0.9s" },
+  { x: "84%", y: "62%", size: "5px", delay: "1.5s" },
+  { x: "92%", y: "34%", size: "2px", delay: "0.2s" }
+];
 const customerLinks = [
   ["home", "Home"],
   ["shop", "Shop"],
@@ -358,7 +367,7 @@ function App() {
 
   return (
     <div className="app" style={{ "--preview": `url(${previewImage})` }}>
-      <LuxuryLoader />
+      <BrandReveal />
       <div className="grain" aria-hidden="true" />
       <Header
         appMode={appMode}
@@ -457,12 +466,77 @@ function App() {
   );
 }
 
-function LuxuryLoader() {
+function BrandReveal() {
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const [isVisible, setIsVisible] = useState(true);
+
+  useEffect(() => {
+    if (!isVisible) return undefined;
+
+    const timer = window.setTimeout(() => setIsVisible(false), prefersReducedMotion ? 1000 : 3600);
+    return () => window.clearTimeout(timer);
+  }, [isVisible, prefersReducedMotion]);
+
   return (
-    <div className="luxury-loader" aria-hidden="true">
-      <img alt="" src={brandLogo} width="1254" height="1254" />
-      <span>MG69</span>
-    </div>
+    <AnimatePresence>
+      {isVisible && (
+        <motion.div
+          className="brand-reveal"
+          initial={{ opacity: 1 }}
+          exit={{ opacity: 0, filter: "blur(12px)" }}
+          transition={{ duration: 0.7, ease: "easeInOut" }}
+        >
+          <div className="reveal-vignette" aria-hidden="true" />
+          <div className="reveal-particles" aria-hidden="true">
+            {revealParticles.map((particle) => (
+              <span
+                key={`${particle.x}-${particle.y}`}
+                style={{
+                  "--particle-delay": particle.delay,
+                  "--particle-size": particle.size,
+                  "--particle-x": particle.x,
+                  "--particle-y": particle.y
+                }}
+              />
+            ))}
+          </div>
+          <motion.div
+            className="reveal-soundwave"
+            aria-hidden="true"
+            initial={{ opacity: 0, scale: 0.72 }}
+            animate={{ opacity: [0, 0.36, 0.12], scale: [0.72, 1.08, 1.22] }}
+            transition={{ duration: 2.4, ease: "easeOut", repeat: 1 }}
+          />
+          <motion.div
+            className="reveal-emblem"
+            initial={{ opacity: 0, scale: 0.72, y: 18 }}
+            animate={{ opacity: 1, scale: [0.72, 1.04, 1], y: 0 }}
+            transition={{ delay: 0.62, duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <span className="reveal-orbit reveal-orbit-one" aria-hidden="true" />
+            <span className="reveal-orbit reveal-orbit-two" aria-hidden="true" />
+            <span className="reveal-sweep" aria-hidden="true" />
+            <img alt="MG69 Street Luxury logo reveal" src={brandLogo} width="1254" height="1254" />
+          </motion.div>
+          <motion.div
+            className="reveal-copy"
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.55, duration: 0.86, ease: "easeOut" }}
+          >
+            <span>MG69</span>
+            <strong>Street Luxury Redefined</strong>
+          </motion.div>
+          <motion.div
+            className="reveal-exit-line"
+            aria-hidden="true"
+            initial={{ scaleX: 0, opacity: 0 }}
+            animate={{ scaleX: [0, 1, 0.18], opacity: [0, 1, 0] }}
+            transition={{ delay: 2.35, duration: 0.9, ease: "easeInOut" }}
+          />
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
@@ -663,10 +737,42 @@ function ModeDashboard({
 }
 
 function Hero() {
+  const [pointer, setPointer] = useState({ x: 0, y: 0 });
+
+  function handlePointerMove(event) {
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const x = ((event.clientX - bounds.left) / bounds.width - 0.5) * 2;
+    const y = ((event.clientY - bounds.top) / bounds.height - 0.5) * 2;
+
+    setPointer({ x, y });
+  }
+
+  const heroPointerStyle = {
+    "--hero-tilt-x": `${pointer.y * -7}deg`,
+    "--hero-tilt-y": `${pointer.x * 9}deg`,
+    "--hero-shift-x": `${pointer.x * 12}px`,
+    "--hero-shift-y": `${pointer.y * 10}px`,
+    "--reflection-x": `${50 + pointer.x * 18}%`,
+    "--reflection-y": `${42 + pointer.y * 12}%`,
+    "--reflection-shift-x": `${pointer.x * -6}px`,
+    "--reflection-shift-y": `${pointer.y * -5}px`,
+    "--orbit-shift-x": `${pointer.x * -6}px`,
+    "--orbit-shift-y": `${pointer.y * -5}px`,
+    "--particle-drift-x": `${pointer.x * 10}px`,
+    "--particle-drift-y": `${pointer.y * 8}px`
+  };
+
   return (
-    <section className="hero" id="home">
+    <section
+      className="hero"
+      id="home"
+      onPointerLeave={() => setPointer({ x: 0, y: 0 })}
+      onPointerMove={handlePointerMove}
+      style={heroPointerStyle}
+    >
       <div className="hero-cream-field" aria-hidden="true" />
       <div className="hero-gold-beam" aria-hidden="true" />
+      <div className="hero-smoke-field" aria-hidden="true" />
       <div className="hero-motion-layer" aria-hidden="true">
         <span className="motion-beam beam-one" />
         <span className="motion-beam beam-two" />
@@ -678,33 +784,69 @@ function Hero() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, ease: "easeOut" }}
       >
-        <div className="hero-copy">
-          <p className="eyebrow">Royal streetwear / Drop 001</p>
+        <motion.div
+          className="hero-copy"
+          initial={{ opacity: 0, y: 26 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.28, duration: 0.78, ease: "easeOut" }}
+        >
+          <motion.p
+            className="eyebrow"
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.56, duration: 0.58, ease: "easeOut" }}
+          >
+            Royal streetwear / Drop 001
+          </motion.p>
           <h1>
             <span>MG69</span>
             <span>Street Luxury Redefined</span>
           </h1>
-          <p className="hero-line">Cream, black, and gold pieces built for uncommon presence.</p>
-          <div className="hero-actions">
+          <motion.p
+            className="hero-line"
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.72, duration: 0.58, ease: "easeOut" }}
+          >
+            Cream, black, and gold pieces built for uncommon presence.
+          </motion.p>
+          <motion.div
+            className="hero-actions"
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.92, duration: 0.58, ease: "easeOut" }}
+          >
             <a className="primary-command hero-command" href="#shop">Shop Drop 001</a>
             <a className="secondary-command" href="#lookbook">View lookbook</a>
-          </div>
-          <div className="hero-stat-row" aria-label="MG69 brand pillars">
+          </motion.div>
+          <motion.div
+            className="hero-stat-row"
+            aria-label="MG69 brand pillars"
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.08, duration: 0.55, ease: "easeOut" }}
+          >
             <span>Metallic gold</span>
             <span>Matte black</span>
             <span>Royal street</span>
-          </div>
-          <a className="hero-feature-piece" href="#product">
+          </motion.div>
+          <motion.a
+            className="hero-feature-piece"
+            href="#product"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.2, duration: 0.55, ease: "easeOut" }}
+          >
             <img
               alt={`${products[0].name} featured product`}
-              fetchPriority="high"
+              fetchpriority="high"
               src={products[0].image}
               {...getImageSize(products[0].image)}
             />
             <span>MG69 Signature Piece</span>
             <strong>{products[0].name}</strong>
-          </a>
-        </div>
+          </motion.a>
+        </motion.div>
         <div className="hero-visual">
           <div className="logo-orbit-field" aria-hidden="true">
             <span className="orbital-line orbit-one" />
@@ -712,36 +854,40 @@ function Hero() {
             <span className="orbital-line orbit-three" />
           </div>
           <motion.div
-            className="logo-stage"
+            className="logo-stage-motion"
             animate={{ y: [0, -8, 0], rotate: [0, 0.35, 0] }}
             transition={{ duration: 7.5, ease: "easeInOut", repeat: Infinity }}
           >
-            <div className="logo-aura" aria-hidden="true" />
-            <div className="logo-ring-field" aria-hidden="true">
-              <span />
-              <span />
+            <div className="logo-stage">
+              <div className="logo-smoke" aria-hidden="true" />
+              <div className="logo-aura" aria-hidden="true" />
+              <div className="logo-glass-reflection" aria-hidden="true" />
+              <div className="logo-ring-field" aria-hidden="true">
+                <span />
+                <span />
+              </div>
+              <div className="particle-field" aria-hidden="true">
+                {logoParticles.map((particle) => (
+                  <span
+                    key={`${particle.x}-${particle.y}`}
+                    style={{
+                      "--particle-delay": particle.delay,
+                      "--particle-size": particle.size,
+                      "--particle-x": particle.x,
+                      "--particle-y": particle.y
+                    }}
+                  />
+                ))}
+              </div>
+              <img
+                className="hero-logo"
+                alt="MG69 Street Luxury Redefined gold crest logo"
+                fetchpriority="high"
+                src={brandLogo}
+                width="1254"
+                height="1254"
+              />
             </div>
-            <div className="particle-field" aria-hidden="true">
-              {logoParticles.map((particle) => (
-                <span
-                  key={`${particle.x}-${particle.y}`}
-                  style={{
-                    "--particle-delay": particle.delay,
-                    "--particle-size": particle.size,
-                    "--particle-x": particle.x,
-                    "--particle-y": particle.y
-                  }}
-                />
-              ))}
-            </div>
-            <img
-              className="hero-logo"
-              alt="MG69 Street Luxury Redefined gold crest logo"
-              fetchPriority="high"
-              src={brandLogo}
-              width="1254"
-              height="1254"
-            />
           </motion.div>
           <motion.a
             className="floating-product-card"
@@ -751,12 +897,17 @@ function Hero() {
           >
             <img
               alt={`${products[0].name} floating product preview`}
-              fetchPriority="high"
+              fetchpriority="high"
               src={products[0].image}
               {...getImageSize(products[0].image)}
             />
             <span>First Piece</span>
             <strong>{money(products[0].price)}</strong>
+            <small>
+              <i>M</i>
+              <i>L</i>
+              <i>XL</i>
+            </small>
           </motion.a>
         </div>
       </motion.div>
@@ -880,7 +1031,7 @@ function Shop({ isLoading, products, searchQuery, selectedProductId, wishlist, o
             <p>Try another search or reset the collection filters.</p>
           </div>
         ) : (
-          <AnimatePresence mode="popLayout">
+          <AnimatePresence>
             {products.map((product) => (
               <ProductCard
                 isSelected={selectedProductId === product.id}

@@ -54,7 +54,7 @@ Copy `server/.env.example` to `server/.env` and fill in MongoDB Atlas, Stripe, a
 | --- | --- | --- |
 | `PORT` | `8080` | Local API port |
 | `NODE_ENV` | `development` | Disables seed endpoint in production |
-| `CLIENT_URL` | `https://mohan143-web.github.io,http://localhost:5173` | Allowed CORS origins |
+| `CLIENT_URL` | `http://localhost:5173/mg69-street-luxury,https://mohan143-web.github.io/mg69-street-luxury` | Frontend redirect URLs; first value is used for Stripe success/cancel redirects |
 | `MONGODB_URI` | `mongodb+srv://USER:PASSWORD@cluster.mongodb.net/mg69` | MongoDB Atlas connection |
 | `STRIPE_SECRET_KEY` | `sk_test_...` | Stripe Checkout test secret |
 | `STRIPE_WEBHOOK_SECRET` | `whsec_...` | Stripe CLI/webhook signing secret |
@@ -70,7 +70,7 @@ Use `POST /api/products/seed` after MongoDB is connected to seed the first MG69 
 4. Copy the printed webhook secret into `server/.env` as `STRIPE_WEBHOOK_SECRET`.
 5. Add a product to the bag and check out with Stripe test card `4242 4242 4242 4242`, any future expiry, and any CVC.
 
-Successful checkout redirects to `#/order-confirmed?session_id=...`, fetches the Stripe session, clears the local cart, and shows the order summary.
+Successful checkout redirects to `#/order-confirmed?session_id=...`, fetches the Stripe session, clears the local cart, and shows the order summary. `CLIENT_URL` values may include the GitHub Pages path; the API normalizes them to origins for CORS.
 
 ## Data Models
 

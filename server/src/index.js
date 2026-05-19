@@ -9,10 +9,20 @@ import checkoutRouter from "./routes/checkout.js";
 
 const app = express();
 const hasDatabase = Boolean(process.env.MONGODB_URI);
-const allowedOrigins = (process.env.CLIENT_URL || "https://mohan143-web.github.io,http://localhost:5173,http://127.0.0.1:5173")
+
+function normalizeOrigin(value) {
+  try {
+    return new URL(value).origin;
+  } catch {
+    return value;
+  }
+}
+
+const allowedOrigins = (process.env.CLIENT_URL || "https://mohan143-web.github.io/mg69-street-luxury,http://localhost:5173,http://127.0.0.1:5173")
   .split(",")
   .map((origin) => origin.trim())
-  .filter(Boolean);
+  .filter(Boolean)
+  .map(normalizeOrigin);
 
 app.use(
   cors({

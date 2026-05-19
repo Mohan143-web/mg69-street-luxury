@@ -20,9 +20,11 @@ import {
   User
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { createCheckoutSession } from "./api/checkout.js";
 import { categories, collections, products } from "./data/products.js";
-import { createCheckoutSession, fetchProducts, hasApi, saveOrder } from "./lib/api.js";
+import { fetchProducts, hasApi, saveOrder } from "./lib/api.js";
 import { readStoredValue, writeStoredValue } from "./lib/storage.js";
+import OrderConfirmed from "./pages/OrderConfirmed.jsx";
 
 const money = (value) => `$${value.toFixed(2)}`;
 const previewImage = `${import.meta.env.BASE_URL}og-preview.png`;
@@ -132,9 +134,11 @@ function App() {
   const [wishlist, setWishlist] = usePersistentState("mg69-wishlist", []);
   const [lastOrder, setLastOrder] = usePersistentState("mg69-last-order", null);
   const [appMode, setAppMode] = usePersistentState("mg69-app-mode", "customer");
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [orderMessage, setOrderMessage] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [route, setRoute] = useState(window.location.hash.replace("#", "") || "home");
+  const routePath = route.replace(/^\//, "").split("?")[0] || "home";
 
   const selectedProduct = catalog.find((product) => product.id === selectedProductId) || catalog[0] || products[0];
   const selectedSizeStock = getSizeStock(selectedProduct, selectedSize);
@@ -168,6 +172,7 @@ function App() {
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const inventoryCount = catalog.reduce((sum, product) => sum + product.stock, 0);
+  const isOrderConfirmed = routePath === "order-confirmed";
 
   useEffect(() => {
     const handleHash = () => setRoute(window.location.hash.replace("#", "") || "home");
@@ -200,29 +205,29 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (customerLinks.some(([target]) => target === route)) {
+    if (customerLinks.some(([target]) => target === routePath)) {
       setAppMode("customer");
     }
 
-    if (route === "men") {
+    if (routePath === "men") {
       setActiveCategory("Men");
       setActiveCollection("All");
     }
 
-    if (route === "women") {
+    if (routePath === "women") {
       setActiveCategory("Women");
       setActiveCollection("All");
     }
 
-    if (route === "drop-001") {
+    if (routePath === "drop-001") {
       setActiveCategory("All");
       setActiveCollection("Drop 001");
     }
 
-    if (route.startsWith("admin")) {
+    if (routePath.startsWith("admin")) {
       setAppMode("admin");
     }
-  }, [route]);
+  }, [routePath]);
 
   function handleModeChange(mode) {
     setAppMode(mode);
@@ -301,6 +306,8 @@ function App() {
 
   async function handleCheckout(event) {
     event.preventDefault();
+    if (cart.length === 0 || checkoutLoading) return;
+
     const form = new FormData(event.currentTarget);
     const customerName = String(form.get("name") || "").trim();
     const email = String(form.get("email") || "").trim();
@@ -330,9 +337,11 @@ function App() {
       return;
     }
 
+    setCheckoutLoading(true);
+
     try {
-      await saveOrder(order);
-      const session = await createCheckoutSession({ customerEmail: email, items: cart });
+      await saveOrder(order).catch(() => null);
+      const session = await createCheckoutSession(cart, email, { address, customerName });
 
       if (session?.url) {
         window.location.href = session.url;
@@ -340,8 +349,10 @@ function App() {
       }
 
       setOrderMessage(`Order saved for ${order.customerName}. Stripe session is pending configuration.`);
-    } catch {
-      setOrderMessage(`Order draft saved locally for ${order.customerName}. API checkout is not reachable yet.`);
+      setCheckoutLoading(false);
+    } catch (error) {
+      setOrderMessage(error.message || `Order draft saved locally for ${order.customerName}. API checkout is not reachable yet.`);
+      setCheckoutLoading(false);
     }
   }
 
@@ -354,7 +365,7 @@ function App() {
         itemCount={itemCount}
         onMenu={() => setDrawerOpen(true)}
         onMode={handleModeChange}
-        route={route}
+        route={routePath}
         wishlistCount={wishlist.length}
       />
       <AppDrawer
@@ -370,68 +381,75 @@ function App() {
       />
 
       <main>
-        <Hero />
-        <ModeDashboard
-          appMode={appMode}
-          catalogStatus={catalogStatus}
-          inventoryCount={inventoryCount}
-          itemCount={itemCount}
-          lastOrder={lastOrder}
-          products={catalog}
-          subtotal={subtotal}
-          wishlistCount={wishlist.length}
-        />
-        <CategoryNavigator
-          activeCategory={activeCategory}
-          activeCollection={activeCollection}
-          onCategory={setActiveCategory}
-          onCollection={setActiveCollection}
-          onSearch={setSearchQuery}
-          searchQuery={searchQuery}
-        />
-        <StorySections />
-        <Shop
-          products={filteredProducts}
-          isLoading={catalogStatus === "connecting"}
-          selectedProductId={selectedProduct.id}
-          searchQuery={searchQuery}
-          wishlist={wishlist}
-          onSelect={selectProduct}
-          onWishlist={toggleWishlist}
-        />
-        <ProductStudio
-          product={selectedProduct}
-          selectedSize={selectedSize}
-          selectedColor={selectedColor}
-          selectedQuantity={selectedQuantity}
-          selectedSizeStock={selectedSizeStock}
-          cart={cart}
-          subtotal={subtotal}
-          orderMessage={orderMessage}
-          onSize={setSelectedSize}
-          onColor={setSelectedColor}
-          onPurchaseQuantity={setSelectedQuantity}
-          onAdd={addToCart}
-          onQuantity={updateQuantity}
-          onCheckout={handleCheckout}
-          wishlist={wishlist}
-          onWishlist={toggleWishlist}
-        />
-        <WishlistPanel
-          products={wishlistProducts}
-          onSelect={selectProduct}
-          onWishlist={toggleWishlist}
-        />
-        <OrderTracking cart={cart} order={lastOrder} />
-        <AdminPanel
-          cart={cart}
-          catalogStatus={catalogStatus}
-          inventoryCount={inventoryCount}
-          lastOrder={lastOrder}
-          products={catalog}
-          subtotal={subtotal}
-          wishlistCount={wishlist.length}
-        />
+        {isOrderConfirmed ? (
+          <OrderConfirmed onClearCart={() => setCart([])} />
+        ) : (
+          <>
+            <Hero />
+            <ModeDashboard
+              appMode={appMode}
+              catalogStatus={catalogStatus}
+              inventoryCount={inventoryCount}
+              itemCount={itemCount}
+              lastOrder={lastOrder}
+              products={catalog}
+              subtotal={subtotal}
+              wishlistCount={wishlist.length}
+            />
+            <CategoryNavigator
+              activeCategory={activeCategory}
+              activeCollection={activeCollection}
+              onCategory={setActiveCategory}
+              onCollection={setActiveCollection}
+              onSearch={setSearchQuery}
+              searchQuery={searchQuery}
+            />
+            <StorySections />
+            <Shop
+              products={filteredProducts}
+              isLoading={catalogStatus === "connecting"}
+              selectedProductId={selectedProduct.id}
+              searchQuery={searchQuery}
+              wishlist={wishlist}
+              onSelect={selectProduct}
+              onWishlist={toggleWishlist}
+            />
+            <ProductStudio
+              product={selectedProduct}
+              selectedSize={selectedSize}
+              selectedColor={selectedColor}
+              selectedQuantity={selectedQuantity}
+              selectedSizeStock={selectedSizeStock}
+              cart={cart}
+              checkoutLoading={checkoutLoading}
+              subtotal={subtotal}
+              orderMessage={orderMessage}
+              onSize={setSelectedSize}
+              onColor={setSelectedColor}
+              onPurchaseQuantity={setSelectedQuantity}
+              onAdd={addToCart}
+              onQuantity={updateQuantity}
+              onCheckout={handleCheckout}
+              wishlist={wishlist}
+              onWishlist={toggleWishlist}
+            />
+            <WishlistPanel
+              products={wishlistProducts}
+              onSelect={selectProduct}
+              onWishlist={toggleWishlist}
+            />
+            <OrderTracking cart={cart} order={lastOrder} />
+            <AdminPanel
+              cart={cart}
+              catalogStatus={catalogStatus}
+              inventoryCount={inventoryCount}
+              lastOrder={lastOrder}
+              products={catalog}
+              subtotal={subtotal}
+              wishlistCount={wishlist.length}
+            />
+          </>
+        )}
       </main>
 
       <MobileNav itemCount={itemCount} onMenu={() => setDrawerOpen(true)} wishlistCount={wishlist.length} />
@@ -931,6 +949,7 @@ function ProductStudio({
   selectedQuantity,
   selectedSizeStock,
   cart,
+  checkoutLoading,
   subtotal,
   orderMessage,
   onSize,
@@ -1021,6 +1040,7 @@ function ProductStudio({
 
       <CartPanel
         cart={cart}
+        checkoutLoading={checkoutLoading}
         orderMessage={orderMessage}
         subtotal={subtotal}
         onCheckout={onCheckout}
@@ -1119,7 +1139,7 @@ function VariantSelector({
   );
 }
 
-function CartPanel({ cart, subtotal, orderMessage, onQuantity, onCheckout }) {
+function CartPanel({ cart, checkoutLoading, subtotal, orderMessage, onQuantity, onCheckout }) {
   return (
     <aside className="bag-panel" id="checkout">
       <div className="panel-heading">
@@ -1185,8 +1205,8 @@ function CartPanel({ cart, subtotal, orderMessage, onQuantity, onCheckout }) {
             <span>Subtotal</span>
             <strong>{money(subtotal)}</strong>
           </div>
-          <button className="primary-command compact" disabled={cart.length === 0} type="submit">
-            Save order
+          <button className="primary-command compact" disabled={checkoutLoading || cart.length === 0} type="submit">
+            {checkoutLoading ? "Redirecting" : `Checkout / ${money(subtotal)}`}
           </button>
         </div>
       </form>

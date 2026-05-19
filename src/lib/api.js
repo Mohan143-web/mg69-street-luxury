@@ -30,10 +30,3 @@ export function saveOrder(order) {
     method: "POST"
   });
 }
-
-export function createCheckoutSession(payload) {
-  return apiRequest("/api/checkout/session", {
-    body: JSON.stringify(payload),
-    method: "POST"
-  });
-}

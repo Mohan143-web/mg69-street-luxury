@@ -1,14 +1,13 @@
 import cors from "cors";
 import "dotenv/config";
 import express from "express";
-import Stripe from "stripe";
 import { fallbackProducts } from "./data/fallbackProducts.js";
 import { connectDatabase } from "./db.js";
 import { Order } from "./models/Order.js";
 import { Product } from "./models/Product.js";
+import checkoutRouter from "./routes/checkout.js";
 
 const app = express();
-const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
 const hasDatabase = Boolean(process.env.MONGODB_URI);
 const allowedOrigins = (process.env.CLIENT_URL || "https://mohan143-web.github.io,http://localhost:5173,http://127.0.0.1:5173")
   .split(",")
@@ -27,6 +26,7 @@ app.use(
     }
   })
 );
+app.use("/api/checkout/webhook", express.raw({ type: "application/json" }));
 app.use(express.json());
 
 app.get("/api/health", (_request, response) => {
@@ -72,30 +72,7 @@ app.post("/api/orders", async (request, response) => {
   response.status(201).json(order);
 });
 
-app.post("/api/checkout/session", async (request, response) => {
-  if (!stripe) {
-    response.status(503).json({ error: "Stripe is not configured. Set STRIPE_SECRET_KEY." });
-    return;
-  }
-
-  const { items = [], customerEmail } = request.body;
-  const session = await stripe.checkout.sessions.create({
-    mode: "payment",
-    customer_email: customerEmail,
-    success_url: `${process.env.CLIENT_URL}/#checkout-success`,
-    cancel_url: `${process.env.CLIENT_URL}/#checkout`,
-    line_items: items.map((item) => ({
-      quantity: item.quantity,
-      price_data: {
-        currency: "usd",
-        product_data: { name: `${item.name} / ${item.size} / ${item.color}` },
-        unit_amount: Math.round(item.price * 100)
-      }
-    }))
-  });
-
-  response.json({ url: session.url, id: session.id });
-});
+app.use("/api/checkout", checkoutRouter);
 
 app.post("/api/products/seed", async (_request, response) => {
   if (process.env.NODE_ENV === "production") {

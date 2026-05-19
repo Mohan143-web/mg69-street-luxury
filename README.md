@@ -15,6 +15,7 @@ Live demo: https://mohan143-web.github.io/mg69-street-luxury/
 - Client-side product search across name, tags, category, and collection
 - Size, color, quantity, per-size stock messaging, and sold-out size states
 - Persistent cart and wishlist via `localStorage`
+- Stripe Checkout session flow with order confirmation route
 - GitHub Pages 404 fallback, favicon, manifest, and Open Graph preview metadata
 - Optional API product hydration through `VITE_API_URL`
 
@@ -23,6 +24,12 @@ Live demo: https://mohan143-web.github.io/mg69-street-luxury/
 ```bash
 npm install
 npm run dev
+```
+
+Create `.env` from `.env.example` when running the API locally:
+
+```bash
+VITE_API_URL=http://localhost:8080
 ```
 
 Build output is written to `docs/` so GitHub Pages can serve the app from the `main` branch.
@@ -50,9 +57,20 @@ Copy `server/.env.example` to `server/.env` and fill in MongoDB Atlas, Stripe, a
 | `CLIENT_URL` | `https://mohan143-web.github.io,http://localhost:5173` | Allowed CORS origins |
 | `MONGODB_URI` | `mongodb+srv://USER:PASSWORD@cluster.mongodb.net/mg69` | MongoDB Atlas connection |
 | `STRIPE_SECRET_KEY` | `sk_test_...` | Stripe Checkout test secret |
+| `STRIPE_WEBHOOK_SECRET` | `whsec_...` | Stripe CLI/webhook signing secret |
 | `ALLOW_RESEED` | `false` | Set `true` locally to replace seeded products |
 
 Use `POST /api/products/seed` after MongoDB is connected to seed the first MG69 catalog. The seed endpoint is blocked in production and refuses to overwrite an existing catalog unless `ALLOW_RESEED=true`.
+
+## Stripe Test Checkout
+
+1. Start the frontend with `npm run dev`.
+2. Start the API with `cd server && npm run dev`.
+3. In another terminal, run `stripe listen --forward-to localhost:8080/api/checkout/webhook`.
+4. Copy the printed webhook secret into `server/.env` as `STRIPE_WEBHOOK_SECRET`.
+5. Add a product to the bag and check out with Stripe test card `4242 4242 4242 4242`, any future expiry, and any CVC.
+
+Successful checkout redirects to `#/order-confirmed?session_id=...`, fetches the Stripe session, clears the local cart, and shows the order summary.
 
 ## Data Models
 

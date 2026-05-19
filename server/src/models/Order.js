@@ -2,7 +2,8 @@ import mongoose from "mongoose";
 
 const orderItemSchema = new mongoose.Schema(
   {
-    productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
+    productId: String,
+    id: String,
     name: String,
     size: String,
     color: String,
@@ -16,7 +17,7 @@ const orderSchema = new mongoose.Schema(
   {
     customerName: { type: String, required: true },
     email: { type: String, required: true },
-    address: String,
+    address: mongoose.Schema.Types.Mixed,
     items: [orderItemSchema],
     total: { type: Number, required: true },
     stripeSessionId: String,

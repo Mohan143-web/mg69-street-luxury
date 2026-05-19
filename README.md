@@ -1,16 +1,17 @@
-# MG69 Street Luxury Ecommerce
+# MG69 Street Luxury
 
-React + Vite ecommerce storefront for MG69, built around a luxury minimal streetwear direction.
+> Luxury minimal streetwear ecommerce — drop-based shopping, variant-aware cart,
+> Stripe checkout, and MongoDB order persistence.
+
+**[Live Demo →](https://mohan143-web.github.io/mg69-street-luxury/)**
 
 ![React](https://img.shields.io/badge/React-18-61DAFB?style=flat&logo=react&logoColor=black)
 ![Vite](https://img.shields.io/badge/Vite-5-646CFF?style=flat&logo=vite&logoColor=white)
 ![Stripe](https://img.shields.io/badge/Stripe-Checkout-635BFF?style=flat&logo=stripe&logoColor=white)
-![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?style=flat&logo=mongodb&logoColor=white)
-![GitHub Pages](https://img.shields.io/badge/Deployed-GitHub_Pages-222?style=flat&logo=github&logoColor=white)
+![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?style=flat&logo=mongodb)
+![GitHub Pages](https://img.shields.io/badge/Deployed-GitHub_Pages-222?style=flat&logo=github)
 
-Live demo: [MG69 Street Luxury](https://mohan143-web.github.io/mg69-street-luxury/)
-
-![MG69 Street Luxury preview](./public/og-preview.png)
+[![MG69 Preview](public/og-preview.png)](https://mohan143-web.github.io/mg69-street-luxury/)
 
 ## Current Upgrade
 

@@ -1,9 +1,9 @@
 import { AnimatePresence, motion } from "framer-motion";
 import {
   BarChart3,
+  Boxes,
   ClipboardList,
   Heart,
-  Home,
   LayoutDashboard,
   Menu,
   Minus,
@@ -11,15 +11,13 @@ import {
   Plus,
   Search,
   Settings,
-  ShieldCheck,
   ShoppingBag,
   SlidersHorizontal,
-  Sparkles,
   Tags,
   Truck,
-  User,
   Users,
-  X
+  X,
+  User
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { categories, collections, products } from "./data/products.js";
@@ -28,29 +26,39 @@ import { readStoredValue, writeStoredValue } from "./lib/storage.js";
 
 const money = (value) => `$${value.toFixed(2)}`;
 const previewImage = `${import.meta.env.BASE_URL}og-preview.png`;
+const brandLogo = `${import.meta.env.BASE_URL}brand/mg69-logo3.png`;
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const fallbackImage = products[0].image;
-
-const customerMenuItems = [
-  { label: "Home", href: "#home", icon: Home, note: "Main MG69 landing page" },
-  { label: "Shop", href: "#shop", icon: Search, note: "Browse all drops" },
-  { label: "Men", href: "#men", icon: User, note: "Men street luxury" },
-  { label: "Women", href: "#women", icon: Sparkles, note: "Women street luxury" },
-  { label: "Drop 001", href: "#drop-001", icon: Package, note: "Latest collection" },
-  { label: "Wishlist", href: "#shop", icon: Heart, note: "Saved favorites" },
-  { label: "Track Order", href: "#checkout", icon: Truck, note: "Shipping and order status" },
-  { label: "Checkout", href: "#checkout", icon: ShoppingBag, note: "Cart and payment" }
+const logoParticles = [
+  { x: "8%", y: "18%", size: "5px", delay: "0s" },
+  { x: "18%", y: "76%", size: "3px", delay: "0.8s" },
+  { x: "33%", y: "10%", size: "4px", delay: "1.3s" },
+  { x: "48%", y: "88%", size: "6px", delay: "0.4s" },
+  { x: "66%", y: "14%", size: "3px", delay: "1.8s" },
+  { x: "76%", y: "70%", size: "5px", delay: "0.2s" },
+  { x: "90%", y: "32%", size: "4px", delay: "1.1s" },
+  { x: "84%", y: "88%", size: "3px", delay: "2.2s" }
 ];
-
-const adminMenuItems = [
-  { label: "Dashboard", href: "#admin", icon: LayoutDashboard, note: "Business overview" },
-  { label: "Products", href: "#admin", icon: Package, note: "Add and edit products" },
-  { label: "Inventory", href: "#admin", icon: ClipboardList, note: "Sizes, colors, stock" },
-  { label: "Orders", href: "#checkout", icon: ShoppingBag, note: "Order management" },
-  { label: "Customers", href: "#admin", icon: Users, note: "Customer profiles" },
-  { label: "Discounts", href: "#admin", icon: Tags, note: "Coupons and campaigns" },
-  { label: "Analytics", href: "#admin", icon: BarChart3, note: "Sales and traffic" },
-  { label: "Settings", href: "#admin", icon: Settings, note: "Store configuration" }
+const customerLinks = [
+  ["home", "Home"],
+  ["shop", "Shop"],
+  ["men", "Men"],
+  ["women", "Women"],
+  ["drop-001", "Drop 001"],
+  ["wishlist", "Wishlist"],
+  ["orders", "Order Tracking"],
+  ["checkout", "Checkout"]
+];
+const adminLinks = [
+  ["admin", "Dashboard"],
+  ["admin-products", "Products"],
+  ["admin-inventory", "Inventory"],
+  ["admin-orders", "Orders"],
+  ["admin-customers", "Customers"],
+  ["admin-discounts", "Discounts"],
+  ["admin-analytics", "Analytics"],
+  ["admin-shipping", "Shipping"],
+  ["admin-settings", "Settings"]
 ];
 
 function normalizeProduct(product) {
@@ -92,12 +100,17 @@ function App() {
   const [selectedQuantity, setSelectedQuantity] = useState(1);
   const [cart, setCart] = usePersistentState("mg69-cart", []);
   const [wishlist, setWishlist] = usePersistentState("mg69-wishlist", []);
+  const [lastOrder, setLastOrder] = usePersistentState("mg69-last-order", null);
+  const [appMode, setAppMode] = usePersistentState("mg69-app-mode", "customer");
   const [orderMessage, setOrderMessage] = useState("");
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [route, setRoute] = useState(window.location.hash.replace("#", "") || "home");
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [menuMode, setMenuMode] = useState("customer");
 
   const selectedProduct = catalog.find((product) => product.id === selectedProductId) || catalog[0] || products[0];
+  const wishlistProducts = useMemo(
+    () => catalog.filter((product) => wishlist.includes(product.id)),
+    [catalog, wishlist]
+  );
 
   const filteredProducts = useMemo(() => {
     return catalog.filter((product) => {
@@ -109,17 +122,13 @@ function App() {
 
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const inventoryCount = catalog.reduce((sum, product) => sum + product.stock, 0);
 
   useEffect(() => {
     const handleHash = () => setRoute(window.location.hash.replace("#", "") || "home");
     window.addEventListener("hashchange", handleHash);
     return () => window.removeEventListener("hashchange", handleHash);
   }, []);
-
-  useEffect(() => {
-    document.body.classList.toggle("menu-open", isMenuOpen);
-    return () => document.body.classList.remove("menu-open");
-  }, [isMenuOpen]);
 
   useEffect(() => {
     let isMounted = true;
@@ -149,19 +158,20 @@ function App() {
     if (route === "men") {
       setActiveCategory("Men");
       setActiveCollection("All");
-      window.location.hash = "shop";
     }
 
     if (route === "women") {
       setActiveCategory("Women");
       setActiveCollection("All");
-      window.location.hash = "shop";
     }
 
     if (route === "drop-001") {
       setActiveCategory("All");
       setActiveCollection("Drop 001");
-      window.location.hash = "shop";
+    }
+
+    if (route.startsWith("admin")) {
+      setAppMode("admin");
     }
   }, [route]);
 
@@ -170,11 +180,6 @@ function App() {
     setSelectedColor(selectedProduct.colors[0].name);
     setSelectedQuantity(1);
   }, [selectedProduct.id]);
-
-  function openMenu(mode = "customer") {
-    setMenuMode(mode);
-    setIsMenuOpen(true);
-  }
 
   function selectProduct(product) {
     setSelectedProductId(product.id);
@@ -252,10 +257,11 @@ function App() {
       items: cart,
       total: subtotal,
       createdAt: new Date().toISOString(),
+      orderNumber: `MG69-${Date.now().toString().slice(-6)}`,
       status: "pending-payment"
     };
 
-    writeStoredValue("mg69-last-order", order);
+    setLastOrder(order);
     setOrderMessage(`Order draft saved for ${order.customerName}.`);
 
     if (!hasApi) {
@@ -280,20 +286,30 @@ function App() {
 
   return (
     <div className="app" style={{ "--preview": `url(${previewImage})` }}>
+      <LuxuryLoader />
       <div className="grain" aria-hidden="true" />
-      <Header itemCount={itemCount} route={route} onOpenMenu={openMenu} />
-      <HamburgerDrawer
-        cartCount={itemCount}
-        isOpen={isMenuOpen}
-        mode={menuMode}
-        onClose={() => setIsMenuOpen(false)}
-        onMode={setMenuMode}
-        productCount={catalog.length}
+      <Header
+        appMode={appMode}
+        itemCount={itemCount}
+        onMenu={() => setDrawerOpen(true)}
+        onMode={setAppMode}
+        route={route}
+        wishlistCount={wishlist.length}
+      />
+      <AppDrawer
+        appMode={appMode}
+        catalogStatus={catalogStatus}
+        inventoryCount={inventoryCount}
+        itemCount={itemCount}
+        onClose={() => setDrawerOpen(false)}
+        onMode={setAppMode}
+        open={drawerOpen}
+        subtotal={subtotal}
         wishlistCount={wishlist.length}
       />
 
       <main>
-        <Hero onOpenMenu={openMenu} />
+        <Hero />
         <CategoryNavigator
           activeCategory={activeCategory}
           activeCollection={activeCollection}
@@ -325,45 +341,70 @@ function App() {
           wishlist={wishlist}
           onWishlist={toggleWishlist}
         />
-        <AdminPanel catalogStatus={catalogStatus} products={catalog} />
+        <WishlistPanel
+          products={wishlistProducts}
+          onSelect={selectProduct}
+          onWishlist={toggleWishlist}
+        />
+        <OrderTracking cart={cart} order={lastOrder} />
+        <AdminPanel
+          cart={cart}
+          catalogStatus={catalogStatus}
+          inventoryCount={inventoryCount}
+          lastOrder={lastOrder}
+          products={catalog}
+          subtotal={subtotal}
+          wishlistCount={wishlist.length}
+        />
       </main>
 
-      <MobileNav itemCount={itemCount} onOpenMenu={openMenu} />
+      <MobileNav itemCount={itemCount} onMenu={() => setDrawerOpen(true)} wishlistCount={wishlist.length} />
     </div>
   );
 }
 
-function Header({ itemCount, route, onOpenMenu }) {
-  const links = [
-    ["home", "Home"],
-    ["shop", "Shop"],
-    ["men", "Men"],
-    ["women", "Women"],
-    ["drop-001", "Drop 001"],
-    ["lookbook", "Lookbook"],
-    ["checkout", "Checkout"]
-  ];
+function LuxuryLoader() {
+  return (
+    <div className="luxury-loader" aria-hidden="true">
+      <img alt="" src={brandLogo} />
+      <span>MG69</span>
+    </div>
+  );
+}
 
+function Header({ appMode, itemCount, onMenu, onMode, route, wishlistCount }) {
   return (
     <header className="topbar">
-      <button className="icon-button menu-button" onClick={() => onOpenMenu("customer")} type="button" aria-label="Open menu">
+      <button className="icon-button menu-button" onClick={onMenu} type="button" aria-label="Open menu">
         <Menu />
       </button>
-      <a className="brand" href="#home">MG69</a>
+      <a className="brand" href="#home">
+        <img alt="" src={brandLogo} />
+        <span>MG69</span>
+      </a>
       <nav className="primary-nav" aria-label="Primary navigation">
-        {links.map(([target, label]) => (
+        {customerLinks.slice(0, 7).map(([target, label]) => (
           <a className={route === target ? "active" : ""} href={`#${target}`} key={target}>
             {label}
           </a>
         ))}
       </nav>
       <div className="top-actions">
-        <button className="icon-button" onClick={() => onOpenMenu("customer")} type="button" aria-label="Search collection">
+        <div className="mode-toggle" aria-label="Application mode">
+          <button className={appMode === "customer" ? "active" : ""} onClick={() => onMode("customer")} type="button">
+            Customer
+          </button>
+          <button className={appMode === "admin" ? "active" : ""} onClick={() => onMode("admin")} type="button">
+            Admin
+          </button>
+        </div>
+        <button className="icon-button" type="button" aria-label="Search collection">
           <Search />
         </button>
-        <button className="icon-button admin-trigger" onClick={() => onOpenMenu("admin")} type="button" aria-label="Open admin menu">
-          <ShieldCheck />
-        </button>
+        <a className="bag-button wish-counter" href="#wishlist" aria-label="View wishlist">
+          <Heart />
+          <span>{wishlistCount}</span>
+        </a>
         <a className="bag-button" href="#checkout" aria-label="View bag">
           <ShoppingBag />
           <span>{itemCount}</span>
@@ -373,82 +414,86 @@ function Header({ itemCount, route, onOpenMenu }) {
   );
 }
 
-function HamburgerDrawer({ cartCount, isOpen, mode, onClose, onMode, productCount, wishlistCount }) {
-  const menuItems = mode === "admin" ? adminMenuItems : customerMenuItems;
-  const stats = mode === "admin"
-    ? [
-        ["Products", productCount],
-        ["Orders", cartCount],
-        ["Mode", "Admin"]
-      ]
-    : [
-        ["Cart", cartCount],
-        ["Wishlist", wishlistCount],
-        ["Mode", "Customer"]
-      ];
+function AppDrawer({
+  appMode,
+  catalogStatus,
+  inventoryCount,
+  itemCount,
+  onClose,
+  onMode,
+  open,
+  subtotal,
+  wishlistCount
+}) {
+  const links = appMode === "admin" ? adminLinks : customerLinks;
 
   return (
     <AnimatePresence>
-      {isOpen && (
+      {open && (
         <motion.div className="drawer-shell" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-          <button className="drawer-backdrop" onClick={onClose} type="button" aria-label="Close menu" />
+          <motion.button
+            aria-label="Close navigation menu"
+            className="drawer-backdrop"
+            onClick={onClose}
+            type="button"
+          />
           <motion.aside
-            className="hamburger-drawer"
-            initial={{ x: "-105%" }}
+            className="app-drawer"
+            initial={{ x: "100%" }}
             animate={{ x: 0 }}
-            exit={{ x: "-105%" }}
-            transition={{ duration: 0.34, ease: "easeOut" }}
-            aria-label="MG69 navigation drawer"
+            exit={{ x: "100%" }}
+            transition={{ duration: 0.32, ease: "easeOut" }}
           >
-            <div className="drawer-top">
-              <div>
-                <p className="eyebrow">MG69 Interface</p>
-                <h2>{mode === "admin" ? "Admin Control" : "Customer Menu"}</h2>
-              </div>
+            <div className="drawer-header">
+              <a className="brand" href="#home" onClick={onClose}>
+                <img alt="" src={brandLogo} />
+                <span>MG69</span>
+              </a>
               <button className="icon-button" onClick={onClose} type="button" aria-label="Close menu">
                 <X />
               </button>
             </div>
 
-            <div className="interface-switch" role="tablist" aria-label="Interface selector">
-              <button className={mode === "customer" ? "active" : ""} onClick={() => onMode("customer")} type="button">
+            <div className="drawer-mode">
+              <button className={appMode === "customer" ? "active" : ""} onClick={() => onMode("customer")} type="button">
                 Customer
               </button>
-              <button className={mode === "admin" ? "active" : ""} onClick={() => onMode("admin")} type="button">
+              <button className={appMode === "admin" ? "active" : ""} onClick={() => onMode("admin")} type="button">
                 Admin
               </button>
             </div>
 
-            <div className="drawer-stats">
-              {stats.map(([label, value]) => (
-                <div key={label}>
+            <nav className="drawer-nav" aria-label={`${appMode} navigation`}>
+              {links.map(([target, label]) => (
+                <a href={`#${target}`} key={target} onClick={onClose}>
                   <span>{label}</span>
-                  <strong>{value}</strong>
-                </div>
-              ))}
-            </div>
-
-            <nav className="drawer-nav" aria-label={`${mode} menu`}>
-              {menuItems.map(({ href, icon: Icon, label, note }) => (
-                <a href={href} key={label} onClick={onClose}>
-                  <Icon size={20} />
-                  <span>
-                    <strong>{label}</strong>
-                    <small>{note}</small>
-                  </span>
+                  <small>{target.replace("-", " / ")}</small>
                 </a>
               ))}
             </nav>
 
-            <div className="drawer-action-card">
-              <p className="eyebrow">Next setup</p>
-              <h3>{mode === "admin" ? "Connect database + admin login" : "Enable login + order tracking"}</h3>
-              <p>
-                {mode === "admin"
-                  ? "Ready for product upload, stock control, discounts, analytics, and order management."
-                  : "Ready for customer profile, saved cart, wishlist, tracking, and checkout experience."}
-              </p>
+            <div className="drawer-stats">
+              <article>
+                <span>Cart</span>
+                <strong>{itemCount} items</strong>
+              </article>
+              <article>
+                <span>Wishlist</span>
+                <strong>{wishlistCount} saved</strong>
+              </article>
+              <article>
+                <span>Inventory</span>
+                <strong>{inventoryCount} units</strong>
+              </article>
+              <article>
+                <span>Subtotal</span>
+                <strong>{money(subtotal)}</strong>
+              </article>
             </div>
+
+            <p className="drawer-footnote">
+              {catalogStatus === "database" ? "MongoDB catalog connected" : "Local fallback catalog / database ready"}
+            </p>
           </motion.aside>
         </motion.div>
       )}
@@ -456,28 +501,55 @@ function HamburgerDrawer({ cartCount, isOpen, mode, onClose, onMode, productCoun
   );
 }
 
-function Hero({ onOpenMenu }) {
+function Hero() {
   return (
     <section className="hero" id="home">
-      <div className="hero-bg image-crop crop-cover" aria-hidden="true" />
-      <div className="hero-glass" aria-hidden="true" />
+      <div className="hero-cream-field" aria-hidden="true" />
+      <div className="hero-gold-beam" aria-hidden="true" />
       <motion.div
-        className="hero-content"
+        className="hero-content hero-layout"
         initial={{ opacity: 0, y: 32 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, ease: "easeOut" }}
       >
-        <p className="eyebrow">Drop 001 / Street luxury</p>
-        <h1>
-          <span>MG69</span>
-          <span>Street</span>
-          <span>Luxury</span>
-          <span>Redefined</span>
-        </h1>
-        <div className="hero-actions">
-          <a className="primary-command hero-command" href="#shop">Shop Drop 001</a>
-          <button className="secondary-command" onClick={() => onOpenMenu("customer")} type="button">Open Menu</button>
+        <div className="hero-copy">
+          <p className="eyebrow">Royal streetwear / Drop 001</p>
+          <h1>
+            <span>MG69</span>
+            <span>Street Luxury Redefined</span>
+          </h1>
+          <p className="hero-line">Cream, black, and gold pieces built for uncommon presence.</p>
+          <div className="hero-actions">
+            <a className="primary-command hero-command" href="#shop">Shop Drop 001</a>
+            <a className="secondary-command" href="#lookbook">View lookbook</a>
+          </div>
+          <div className="hero-stat-row" aria-label="MG69 brand pillars">
+            <span>Metallic gold</span>
+            <span>Matte black</span>
+            <span>Royal street</span>
+          </div>
         </div>
+        <motion.div
+          className="logo-stage"
+          animate={{ y: [0, -10, 0], rotate: [0, 0.4, 0] }}
+          transition={{ duration: 7.5, ease: "easeInOut", repeat: Infinity }}
+        >
+          <div className="logo-aura" aria-hidden="true" />
+          <div className="particle-field" aria-hidden="true">
+            {logoParticles.map((particle) => (
+              <span
+                key={`${particle.x}-${particle.y}`}
+                style={{
+                  "--particle-delay": particle.delay,
+                  "--particle-size": particle.size,
+                  "--particle-x": particle.x,
+                  "--particle-y": particle.y
+                }}
+              />
+            ))}
+          </div>
+          <img className="hero-logo" alt="MG69 Street Luxury Redefined gold crest logo" src={brandLogo} />
+        </motion.div>
       </motion.div>
     </section>
   );
@@ -490,7 +562,12 @@ function CategoryNavigator({ activeCategory, activeCollection, onCategory, onCol
         <p className="eyebrow">Shop by category</p>
         <div className="segmented-control">
           {categories.map((category) => (
-            <button className={activeCategory === category ? "active" : ""} key={category} onClick={() => onCategory(category)} type="button">
+            <button
+              className={activeCategory === category ? "active" : ""}
+              key={category}
+              onClick={() => onCategory(category)}
+              type="button"
+            >
               {category}
             </button>
           ))}
@@ -500,7 +577,12 @@ function CategoryNavigator({ activeCategory, activeCollection, onCategory, onCol
         <p className="eyebrow">Collection filter</p>
         <div className="collection-tabs">
           {collections.map((collection) => (
-            <button className={activeCollection === collection ? "active" : ""} key={collection} onClick={() => onCollection(collection)} type="button">
+            <button
+              className={activeCollection === collection ? "active" : ""}
+              key={collection}
+              onClick={() => onCollection(collection)}
+              type="button"
+            >
               {collection}
             </button>
           ))}
@@ -523,22 +605,28 @@ function StorySections() {
         <motion.p initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>
           Not for everyone
         </motion.p>
-        <h2>Built for the uncommon. No signal to noise.</h2>
+        <h2>Royal weight. Street discipline. No signal to noise.</h2>
         <div className="manifesto-grid">
-          <span>Matte black</span>
-          <span>Heavy fabric</span>
-          <span>Future uniform</span>
+          <span>Cream grounds</span>
+          <span>Gold accents</span>
+          <span>Black silhouettes</span>
         </div>
       </section>
 
       <section className="lookbook-section" id="lookbook">
         <div className="section-heading">
           <p className="eyebrow">Lookbook reels</p>
-          <h2>Editorial shadows, concrete texture, silver light.</h2>
+          <h2>Editorial shadows, leather texture, metallic light.</h2>
         </div>
         <div className="lookbook-grid">
           {lookbookVisuals.map(({ image, label }) => (
-            <motion.article className="lookbook-card" initial={{ opacity: 0, y: 30 }} key={label} viewport={{ once: true, margin: "-80px" }} whileInView={{ opacity: 1, y: 0 }}>
+            <motion.article
+              className="lookbook-card"
+              initial={{ opacity: 0, y: 30 }}
+              key={label}
+              viewport={{ once: true, margin: "-80px" }}
+              whileInView={{ opacity: 1, y: 0 }}
+            >
               <img alt={`${label} MG69 lookbook`} src={image} loading="lazy" />
               <span>{label}</span>
             </motion.article>
@@ -580,7 +668,13 @@ function Shop({ products, selectedProductId, wishlist, onSelect, onWishlist }) {
 
 function ProductCard({ product, isSelected, isWishlisted, onSelect, onWishlist }) {
   return (
-    <motion.article className={`product-card ${isSelected ? "selected" : ""}`} layout initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96 }}>
+    <motion.article
+      className={`product-card ${isSelected ? "selected" : ""}`}
+      layout
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.96 }}
+    >
       <button className="product-thumb" onClick={onSelect} type="button">
         <img alt={`${product.name} front product shot`} src={product.image} loading="lazy" />
       </button>
@@ -630,15 +724,27 @@ function ProductStudio({
       <div className="detail-panel">
         <div className="detail-image-wrap">
           <div className="detail-image">
-            <img alt={`${product.name} ${gallery.find((image) => image.src === activeImage)?.label || "product"} view`} src={activeImage} />
+            <img
+              alt={`${product.name} ${gallery.find((image) => image.src === activeImage)?.label || "product"} view`}
+              src={activeImage}
+            />
           </div>
-          <button className={`icon-button favorite-floating ${wishlist.includes(product.id) ? "active" : ""}`} onClick={() => onWishlist(product.id)} type="button">
+          <button
+            className={`icon-button favorite-floating ${wishlist.includes(product.id) ? "active" : ""}`}
+            onClick={() => onWishlist(product.id)}
+            type="button"
+          >
             <Heart />
           </button>
         </div>
         <div className="product-gallery" aria-label={`${product.name} gallery`}>
           {gallery.map((image) => (
-            <button className={activeImage === image.src ? "active" : ""} key={image.src} onClick={() => setActiveImage(image.src)} type="button">
+            <button
+              className={activeImage === image.src ? "active" : ""}
+              key={image.src}
+              onClick={() => setActiveImage(image.src)}
+              type="button"
+            >
               <img alt={`${product.name} ${image.label} thumbnail`} src={image.src} loading="lazy" />
               <span>{image.label}</span>
             </button>
@@ -679,12 +785,28 @@ function ProductStudio({
         </div>
       </div>
 
-      <CartPanel cart={cart} orderMessage={orderMessage} subtotal={subtotal} onCheckout={onCheckout} onQuantity={onQuantity} />
+      <CartPanel
+        cart={cart}
+        orderMessage={orderMessage}
+        subtotal={subtotal}
+        onCheckout={onCheckout}
+        onQuantity={onQuantity}
+      />
     </section>
   );
 }
 
-function VariantSelector({ colors, selectedColor, selectedQuantity, selectedSize, sizes, stock, onColor, onPurchaseQuantity, onSize }) {
+function VariantSelector({
+  colors,
+  selectedColor,
+  selectedQuantity,
+  selectedSize,
+  sizes,
+  stock,
+  onColor,
+  onPurchaseQuantity,
+  onSize
+}) {
   return (
     <div className="variant-stack">
       <div>
@@ -694,7 +816,13 @@ function VariantSelector({ colors, selectedColor, selectedQuantity, selectedSize
         </div>
         <div className="swatch-row">
           {colors.map((color) => (
-            <button className={selectedColor === color.name ? "active" : ""} key={color.name} onClick={() => onColor(color.name)} style={{ "--swatch": color.hex }} type="button">
+            <button
+              className={selectedColor === color.name ? "active" : ""}
+              key={color.name}
+              onClick={() => onColor(color.name)}
+              style={{ "--swatch": color.hex }}
+              type="button"
+            >
               <span />
             </button>
           ))}
@@ -708,7 +836,12 @@ function VariantSelector({ colors, selectedColor, selectedQuantity, selectedSize
         </div>
         <div className="size-options">
           {sizes.map((size) => (
-            <button className={selectedSize === size ? "selected" : ""} key={size} onClick={() => onSize(size)} type="button">
+            <button
+              className={selectedSize === size ? "selected" : ""}
+              key={size}
+              onClick={() => onSize(size)}
+              type="button"
+            >
               {size}
             </button>
           ))}
@@ -721,9 +854,21 @@ function VariantSelector({ colors, selectedColor, selectedQuantity, selectedSize
           <strong>{selectedSize} / {selectedColor}</strong>
         </div>
         <div className="quantity-control" aria-label="Quantity selector">
-          <button disabled={selectedQuantity <= 1} onClick={() => onPurchaseQuantity(Math.max(1, selectedQuantity - 1))} type="button"><Minus size={14} /></button>
+          <button
+            disabled={selectedQuantity <= 1}
+            onClick={() => onPurchaseQuantity(Math.max(1, selectedQuantity - 1))}
+            type="button"
+          >
+            <Minus size={14} />
+          </button>
           <strong>{selectedQuantity}</strong>
-          <button disabled={selectedQuantity >= stock} onClick={() => onPurchaseQuantity(Math.min(stock, selectedQuantity + 1))} type="button"><Plus size={14} /></button>
+          <button
+            disabled={selectedQuantity >= stock}
+            onClick={() => onPurchaseQuantity(Math.min(stock, selectedQuantity + 1))}
+            type="button"
+          >
+            <Plus size={14} />
+          </button>
         </div>
       </div>
     </div>
@@ -769,12 +914,34 @@ function CartPanel({ cart, subtotal, orderMessage, onQuantity, onCheckout }) {
       )}
 
       <form className="checkout-form" onSubmit={onCheckout}>
-        <label><span>Name</span><input name="name" placeholder="Mohan Rajendran" required /></label>
-        <label><span>Email</span><input autoComplete="email" inputMode="email" name="email" pattern="[^\s@]+@[^\s@]+\.[^\s@]+" placeholder="you@example.com" required type="text" /></label>
-        <label><span>Shipping address</span><textarea name="address" placeholder="Street, city, state, zip" required /></label>
+        <label>
+          <span>Name</span>
+          <input name="name" placeholder="Mohan Rajendran" required />
+        </label>
+        <label>
+          <span>Email</span>
+          <input
+            autoComplete="email"
+            inputMode="email"
+            name="email"
+            pattern="[^\s@]+@[^\s@]+\.[^\s@]+"
+            placeholder="you@example.com"
+            required
+            type="text"
+          />
+        </label>
+        <label>
+          <span>Shipping address</span>
+          <textarea name="address" placeholder="Street, city, state, zip" required />
+        </label>
         <div className="checkout-summary">
-          <div><span>Subtotal</span><strong>{money(subtotal)}</strong></div>
-          <button className="primary-command compact" disabled={cart.length === 0} type="submit">Save order</button>
+          <div>
+            <span>Subtotal</span>
+            <strong>{money(subtotal)}</strong>
+          </div>
+          <button className="primary-command compact" disabled={cart.length === 0} type="submit">
+            Save order
+          </button>
         </div>
       </form>
 
@@ -783,33 +950,184 @@ function CartPanel({ cart, subtotal, orderMessage, onQuantity, onCheckout }) {
   );
 }
 
-function AdminPanel({ catalogStatus, products }) {
-  const totalStock = products.reduce((sum, product) => sum + product.stock, 0);
-  const averagePrice = products.length ? products.reduce((sum, product) => sum + product.price, 0) / products.length : 0;
-  const adminCards = [
-    ["Products", `${products.length} active styles`, "Add, edit, hide, and publish MG69 products."],
-    ["Inventory", `${totalStock} units`, "Manage size/color stock and low inventory alerts."],
-    ["Pricing", `${money(averagePrice)} avg`, "Control prices, discounts, coupons, and drops."],
-    ["Orders", "Checkout-ready", "Review saved orders and connect Stripe payments."],
-    ["Customers", "Profiles-ready", "Prepare login, wishlist, addresses, and customer history."],
-    ["Analytics", "Dashboard-ready", "Track revenue, conversion, traffic, and popular sizes."],
-    ["Shipping", "Fulfillment-ready", "Set delivery zones, order tracking, and return rules."],
-    ["Settings", catalogStatus === "database" ? "MongoDB live" : "Local fallback", "Connect API, database, payment, and admin login."]
+function WishlistPanel({ products, onSelect, onWishlist }) {
+  return (
+    <section className="wishlist-section" id="wishlist">
+      <div className="section-heading">
+        <p className="eyebrow">Customer account</p>
+        <h2>Wishlist</h2>
+      </div>
+
+      {products.length === 0 ? (
+        <div className="empty-panel">
+          <Heart />
+          <h3>No saved pieces</h3>
+          <p>Tap the heart on a product to build a saved MG69 wardrobe.</p>
+        </div>
+      ) : (
+        <div className="wishlist-grid">
+          {products.map((product) => (
+            <motion.article
+              className="wishlist-card"
+              initial={{ opacity: 0, y: 18 }}
+              key={product.id}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+            >
+              <button className="wishlist-image" onClick={() => onSelect(product)} type="button">
+                <img alt={`${product.name} wishlist preview`} src={product.image} loading="lazy" />
+              </button>
+              <div>
+                <span>{product.collection}</span>
+                <h3>{product.name}</h3>
+                <p>{product.tagline}</p>
+                <strong>{money(product.price)}</strong>
+              </div>
+              <button className="icon-button" onClick={() => onWishlist(product.id)} type="button" aria-label="Remove from wishlist">
+                <Heart />
+              </button>
+            </motion.article>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function OrderTracking({ cart, order }) {
+  const timeline = [
+    ["Order draft", order ? "complete" : "active"],
+    ["Payment", order?.status === "paid" ? "complete" : "pending"],
+    ["Packing", "pending"],
+    ["Shipped", "pending"]
+  ];
+  const draftItems = order?.items?.length ? order.items : cart;
+  const orderTotal = order?.total || cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const orderDate = order?.createdAt
+    ? new Date(order.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
+    : "Not started";
+
+  return (
+    <section className="tracking-section" id="orders">
+      <div className="section-heading">
+        <p className="eyebrow">Customer service</p>
+        <h2>Order tracking</h2>
+      </div>
+
+      <div className="tracking-layout">
+        <div className="tracking-card">
+          <div className="tracking-summary">
+            <span>{order?.orderNumber || "MG69 draft order"}</span>
+            <strong>{money(orderTotal)}</strong>
+          </div>
+          <h3>{order ? `Saved for ${order.customerName}` : "No order draft yet"}</h3>
+          <p>{order ? `${draftItems.length} line items / ${orderDate}` : "Add products to the bag, then save checkout details to create an order timeline."}</p>
+          <div className="tracking-items">
+            {draftItems.length === 0 ? (
+              <span>No items in tracking yet.</span>
+            ) : (
+              draftItems.slice(0, 3).map((item) => (
+                <span key={item.cartId || item.productId}>{item.name} x {item.quantity}</span>
+              ))
+            )}
+          </div>
+        </div>
+
+        <div className="timeline-panel" aria-label="Order timeline">
+          {timeline.map(([label, status]) => (
+            <div className={`timeline-step ${status}`} key={label}>
+              <i />
+              <span>{label}</span>
+              <strong>{status}</strong>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function AdminPanel({ cart, catalogStatus, inventoryCount, lastOrder, products, subtotal, wishlistCount }) {
+  const modules = [
+    {
+      id: "admin-dashboard",
+      icon: LayoutDashboard,
+      label: "Dashboard",
+      value: money(subtotal),
+      body: "Live cart subtotal, catalog status, and launch KPIs."
+    },
+    {
+      id: "admin-products",
+      icon: Package,
+      label: "Products",
+      value: `${products.length} SKUs`,
+      body: "Product records include category, collection, variants, stock, and imagery."
+    },
+    {
+      id: "admin-inventory",
+      icon: Boxes,
+      label: "Inventory",
+      value: `${inventoryCount} units`,
+      body: "Stock counts are ready to sync with MongoDB or Firebase admin flows."
+    },
+    {
+      id: "admin-orders",
+      icon: ClipboardList,
+      label: "Orders",
+      value: lastOrder ? "1 draft" : "0 drafts",
+      body: "Checkout saves an order draft locally and can post to the API when configured."
+    },
+    {
+      id: "admin-customers",
+      icon: Users,
+      label: "Customers",
+      value: `${wishlistCount} saved`,
+      body: "Wishlist and customer records are ready for Firebase Auth profiles."
+    },
+    {
+      id: "admin-discounts",
+      icon: Tags,
+      label: "Discounts",
+      value: "Drop codes",
+      body: "Campaign structure for launch offers, creator codes, and limited drops."
+    },
+    {
+      id: "admin-analytics",
+      icon: BarChart3,
+      label: "Analytics",
+      value: `${cart.length} bag lines`,
+      body: "Prepared for revenue, conversion, product demand, and customer insight cards."
+    },
+    {
+      id: "admin-shipping",
+      icon: Truck,
+      label: "Shipping",
+      value: "Zone ready",
+      body: "Shipping settings can map to Stripe, Shippo, or a custom fulfillment table."
+    },
+    {
+      id: "admin-settings",
+      icon: Settings,
+      label: "Settings",
+      value: catalogStatus === "database" ? "DB live" : "Local mode",
+      body: "Environment-ready controls for API URL, payments, auth, and catalog source."
+    }
   ];
 
   return (
     <section className="admin-section" id="admin">
       <div className="section-heading">
         <p className="eyebrow">Admin interface</p>
-        <h2>Store control</h2>
+        <h2>Command dashboard</h2>
         <span className="data-source-pill">{catalogStatus === "database" ? "MongoDB live" : "Local fallback"}</span>
       </div>
       <div className="admin-grid">
-        {adminCards.map(([title, stat, text]) => (
-          <article key={title}>
-            <span>{stat}</span>
-            <h3>{title}</h3>
-            <p>{text}</p>
+        {modules.map(({ body, icon: Icon, id, label, value }) => (
+          <article id={id} key={id}>
+            <Icon />
+            <span>{label}</span>
+            <h3>{value}</h3>
+            <p>{body}</p>
           </article>
         ))}
       </div>
@@ -817,13 +1135,14 @@ function AdminPanel({ catalogStatus, products }) {
   );
 }
 
-function MobileNav({ itemCount, onOpenMenu }) {
+function MobileNav({ itemCount, onMenu, wishlistCount }) {
   return (
     <nav className="mobile-nav" aria-label="Mobile navigation">
-      <button onClick={() => onOpenMenu("customer")} type="button"><Menu size={18} />Menu</button>
+      <button onClick={onMenu} type="button"><Menu size={18} />Menu</button>
       <a href="#shop"><Search size={18} />Shop</a>
+      <a href="#wishlist"><Heart size={18} />Wish {wishlistCount}</a>
       <a href="#checkout"><ShoppingBag size={18} />Bag {itemCount}</a>
-      <button onClick={() => onOpenMenu("admin")} type="button"><ShieldCheck size={18} />Admin</button>
+      <a href="#admin"><User size={18} />Admin</a>
     </nav>
   );
 }

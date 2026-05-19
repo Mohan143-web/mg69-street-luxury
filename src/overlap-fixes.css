@@ -15,6 +15,10 @@ main,
 .bag-panel,
 .router-block,
 .lookbook-card,
+.wishlist-card,
+.tracking-card,
+.timeline-panel,
+.app-drawer,
 .admin-grid article {
   min-width: 0;
 }
@@ -26,7 +30,10 @@ main,
 .panel-heading,
 .checkout-summary,
 .router-block,
-.bag-line {
+.bag-line,
+.wishlist-card,
+.tracking-layout,
+.drawer-nav a {
   min-width: 0;
   max-width: 100%;
 }
@@ -37,14 +44,18 @@ main,
 .section-heading h2,
 .detail-body h2,
 .panel-heading h2,
-.product-info h3 {
+.product-info h3,
+.wishlist-card h3,
+.tracking-card h3 {
   overflow-wrap: anywhere;
 }
 
 .product-list,
 .lookbook-grid,
+.wishlist-grid,
 .commerce-router,
 .product-studio,
+.tracking-layout,
 .detail-panel,
 .admin-grid {
   max-width: 100%;
@@ -72,6 +83,7 @@ main,
 @media (max-width: 1180px) {
   .product-studio,
   .commerce-router,
+  .tracking-layout,
   .detail-panel {
     grid-template-columns: minmax(0, 1fr) !important;
   }
@@ -127,18 +139,22 @@ main,
   .lookbook-section,
   .shop-section,
   .product-studio,
+  .wishlist-section,
+  .tracking-section,
   .admin-section {
     width: calc(100% - 20px);
   }
 
   .lookbook-grid,
-  .product-list {
+  .product-list,
+  .wishlist-grid {
     max-width: 100%;
     overscroll-behavior-x: contain;
   }
 
   .lookbook-card,
-  .product-card {
+  .product-card,
+  .wishlist-card {
     flex-basis: min(82vw, 390px);
     min-width: min(82vw, 390px);
   }
@@ -156,6 +172,7 @@ main,
   .field-heading,
   .detail-kicker,
   .panel-heading,
+  .tracking-summary,
   .shop-toolbar {
     align-items: stretch;
     flex-direction: column;

@@ -1,5 +1,27 @@
 export const fallbackProducts = [
   {
+    id: "mg69-first-piece-smile-hoodie",
+    name: "First Piece Smile Hoodie",
+    collection: "Drop 001",
+    price: 129,
+    category: "Men",
+    type: "Signature Hoodie",
+    stock: 25,
+    imageUrl: "/products/first-piece-front.png",
+    images: [
+      { label: "Front", src: "/products/first-piece-front.png" },
+      { label: "Back", src: "/products/first-piece-back.png" }
+    ],
+    sizes: ["S", "M", "L", "XL", "XXL"],
+    colors: [
+      { name: "Matte Black", hex: "#080807" },
+      { name: "Gold Print", hex: "#d7a83f" }
+    ],
+    specs: { Fabric: "Cotton Fleece", Weight: "420 GSM", Fit: "Oversized" },
+    tags: ["MG69 Signature Piece", "Drop 001", "Smile Hoodie"],
+    active: true
+  },
+  {
     id: "mg69-heavyweight-tee",
     name: "Oversized Heavyweight Tee",
     collection: "Drop 001",

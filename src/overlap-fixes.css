@@ -73,6 +73,7 @@ main,
 
 .checkout-form input,
 .checkout-form textarea,
+.hero-feature-piece,
 .primary-command,
 .icon-button,
 .bag-button,
@@ -207,6 +208,10 @@ main,
 
   .hero h1 span:not(:first-child) {
     font-size: clamp(1.75rem, 9vw, 2.6rem);
+  }
+
+  .hero-feature-piece {
+    width: 100%;
   }
 
   .logo-stage {

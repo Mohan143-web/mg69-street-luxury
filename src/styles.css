@@ -576,6 +576,61 @@ button {
   border-right: 0;
 }
 
+.hero-feature-piece {
+  display: grid;
+  grid-template-columns: 64px minmax(0, auto);
+  align-items: center;
+  gap: 4px 12px;
+  width: min(100%, 420px);
+  min-height: 76px;
+  padding: 8px 14px 8px 8px;
+  border: 1px solid rgba(127, 83, 23, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 247, 232, 0.5);
+  color: var(--black);
+  text-decoration: none;
+  box-shadow: 0 18px 50px rgba(127, 83, 23, 0.12);
+  transition: transform 0.35s ease, border-color 0.35s ease, background 0.35s ease;
+}
+
+.hero-feature-piece:hover {
+  transform: translateY(-4px);
+  border-color: var(--gold-line);
+  background: rgba(255, 229, 154, 0.22);
+}
+
+.hero-feature-piece img {
+  grid-row: span 2;
+  width: 64px;
+  height: 60px;
+  border-radius: 6px;
+  object-fit: cover;
+  filter: grayscale(0.28) sepia(0.1);
+}
+
+.hero-feature-piece span,
+.hero-feature-piece strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hero-feature-piece span {
+  color: var(--gold-deep);
+  font-size: 0.66rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.hero-feature-piece strong {
+  align-self: start;
+  font-size: 0.96rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
 .logo-stage {
   position: relative;
   display: grid;

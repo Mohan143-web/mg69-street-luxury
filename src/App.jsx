@@ -528,6 +528,11 @@ function Hero() {
             <span>Matte black</span>
             <span>Royal street</span>
           </div>
+          <a className="hero-feature-piece" href="#product">
+            <img alt={`${products[0].name} featured product`} src={products[0].image} />
+            <span>MG69 Signature Piece</span>
+            <strong>{products[0].name}</strong>
+          </a>
         </div>
         <motion.div
           className="logo-stage"

@@ -155,6 +155,10 @@ function App() {
   }, []);
 
   useEffect(() => {
+    if (customerLinks.some(([target]) => target === route)) {
+      setAppMode("customer");
+    }
+
     if (route === "men") {
       setActiveCategory("Men");
       setActiveCollection("All");
@@ -174,6 +178,11 @@ function App() {
       setAppMode("admin");
     }
   }, [route]);
+
+  function handleModeChange(mode) {
+    setAppMode(mode);
+    window.location.hash = "mode-dashboard";
+  }
 
   useEffect(() => {
     setSelectedSize(selectedProduct.sizes[0]);
@@ -292,7 +301,7 @@ function App() {
         appMode={appMode}
         itemCount={itemCount}
         onMenu={() => setDrawerOpen(true)}
-        onMode={setAppMode}
+        onMode={handleModeChange}
         route={route}
         wishlistCount={wishlist.length}
       />
@@ -302,7 +311,7 @@ function App() {
         inventoryCount={inventoryCount}
         itemCount={itemCount}
         onClose={() => setDrawerOpen(false)}
-        onMode={setAppMode}
+        onMode={handleModeChange}
         open={drawerOpen}
         subtotal={subtotal}
         wishlistCount={wishlist.length}
@@ -310,6 +319,16 @@ function App() {
 
       <main>
         <Hero />
+        <ModeDashboard
+          appMode={appMode}
+          catalogStatus={catalogStatus}
+          inventoryCount={inventoryCount}
+          itemCount={itemCount}
+          lastOrder={lastOrder}
+          products={catalog}
+          subtotal={subtotal}
+          wishlistCount={wishlist.length}
+        />
         <CategoryNavigator
           activeCategory={activeCategory}
           activeCollection={activeCollection}
@@ -373,6 +392,8 @@ function LuxuryLoader() {
 }
 
 function Header({ appMode, itemCount, onMenu, onMode, route, wishlistCount }) {
+  const links = appMode === "admin" ? adminLinks : customerLinks;
+
   return (
     <header className="topbar">
       <button className="icon-button menu-button" onClick={onMenu} type="button" aria-label="Open menu">
@@ -383,7 +404,7 @@ function Header({ appMode, itemCount, onMenu, onMode, route, wishlistCount }) {
         <span>MG69</span>
       </a>
       <nav className="primary-nav" aria-label="Primary navigation">
-        {customerLinks.slice(0, 7).map(([target, label]) => (
+        {links.slice(0, 7).map(([target, label]) => (
           <a className={route === target ? "active" : ""} href={`#${target}`} key={target}>
             {label}
           </a>
@@ -455,10 +476,24 @@ function AppDrawer({
             </div>
 
             <div className="drawer-mode">
-              <button className={appMode === "customer" ? "active" : ""} onClick={() => onMode("customer")} type="button">
+              <button
+                className={appMode === "customer" ? "active" : ""}
+                onClick={() => {
+                  onMode("customer");
+                  onClose();
+                }}
+                type="button"
+              >
                 Customer
               </button>
-              <button className={appMode === "admin" ? "active" : ""} onClick={() => onMode("admin")} type="button">
+              <button
+                className={appMode === "admin" ? "active" : ""}
+                onClick={() => {
+                  onMode("admin");
+                  onClose();
+                }}
+                type="button"
+              >
                 Admin
               </button>
             </div>
@@ -498,6 +533,57 @@ function AppDrawer({
         </motion.div>
       )}
     </AnimatePresence>
+  );
+}
+
+function ModeDashboard({
+  appMode,
+  catalogStatus,
+  inventoryCount,
+  itemCount,
+  lastOrder,
+  products,
+  subtotal,
+  wishlistCount
+}) {
+  const activeDrop = products.find((product) => product.collection === "Drop 001") || products[0];
+  const lastOrderDate = lastOrder?.createdAt
+    ? new Date(lastOrder.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })
+    : "Not started";
+  const adminCards = [
+    ["Cart pipeline", money(subtotal), `${itemCount} units currently in customer bags`],
+    ["Catalog", `${products.length} SKUs`, `${catalogStatus === "database" ? "Database" : "Local"} product source active`],
+    ["Inventory", `${inventoryCount} units`, "Stock totals across live MG69 pieces"],
+    ["Orders", lastOrder ? "1 draft" : "0 drafts", lastOrder ? `${lastOrder.orderNumber} / ${lastOrderDate}` : "No saved order drafts yet"]
+  ];
+  const customerCards = [
+    ["Bag", `${itemCount} items`, `${money(subtotal)} selected for checkout`],
+    ["Wishlist", `${wishlistCount} saved`, "Saved pieces stay on this device"],
+    ["Order", lastOrder ? lastOrder.orderNumber : "No draft", lastOrder ? `${lastOrderDate} / ${money(lastOrder.total)}` : "Checkout has not been saved yet"],
+    ["Featured", activeDrop?.name || "Drop 001", activeDrop ? `${activeDrop.collection} / ${money(activeDrop.price)}` : "Signature product loading"]
+  ];
+  const cards = appMode === "admin" ? adminCards : customerCards;
+
+  return (
+    <section className={`mode-dashboard ${appMode}`} id="mode-dashboard">
+      <div className="mode-dashboard-header">
+        <p className="eyebrow">{appMode === "admin" ? "Admin data" : "Customer data"}</p>
+        <h2>{appMode === "admin" ? "Store command" : "Customer hub"}</h2>
+        <a className="secondary-command" href={appMode === "admin" ? "#admin" : "#shop"}>
+          {appMode === "admin" ? "Open dashboard" : "Continue shopping"}
+        </a>
+      </div>
+
+      <div className="mode-dashboard-grid">
+        {cards.map(([label, value, body]) => (
+          <article key={label}>
+            <span>{label}</span>
+            <strong>{value}</strong>
+            <p>{body}</p>
+          </article>
+        ))}
+      </div>
+    </section>
   );
 }
 

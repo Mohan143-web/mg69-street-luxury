@@ -980,6 +980,7 @@ button {
 }
 
 .commerce-router,
+.mode-dashboard,
 .manifesto,
 .lookbook-section,
 .shop-section,
@@ -989,6 +990,99 @@ button {
 .admin-section {
   width: min(100% - 36px, 1440px);
   margin: 0 auto;
+}
+
+.mode-dashboard {
+  display: grid;
+  gap: 18px;
+  padding: 46px 0 0;
+  scroll-margin-top: 112px;
+}
+
+.mode-dashboard-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 10px 18px;
+}
+
+.mode-dashboard-header .eyebrow {
+  grid-column: 1 / -1;
+}
+
+.mode-dashboard-header h2 {
+  margin: 0;
+  color: var(--black);
+  font-family: "Bebas Neue", "Arial Narrow", Impact, sans-serif;
+  font-size: clamp(3.2rem, 7vw, 6.8rem);
+  font-weight: 400;
+  letter-spacing: 0.05em;
+  line-height: 0.88;
+  text-transform: uppercase;
+}
+
+.mode-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.mode-dashboard-grid article {
+  display: grid;
+  gap: 12px;
+  min-height: 172px;
+  padding: 18px;
+  border: 1px solid rgba(127, 83, 23, 0.18);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(255, 247, 232, 0.92), rgba(237, 221, 193, 0.86)),
+    repeating-linear-gradient(110deg, rgba(127, 83, 23, 0.05) 0 1px, transparent 1px 10px);
+  box-shadow: 0 18px 58px rgba(56, 35, 9, 0.12);
+}
+
+.mode-dashboard.admin .mode-dashboard-grid article {
+  border-color: rgba(215, 168, 63, 0.24);
+  background:
+    linear-gradient(145deg, rgba(12, 12, 11, 0.96), rgba(27, 24, 19, 0.92)),
+    repeating-linear-gradient(115deg, rgba(255, 229, 154, 0.035) 0 1px, transparent 1px 10px);
+  box-shadow: var(--shadow);
+}
+
+.mode-dashboard-grid span {
+  color: var(--gold-deep);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.mode-dashboard.admin .mode-dashboard-grid span {
+  color: var(--gold-bright);
+}
+
+.mode-dashboard-grid strong {
+  color: var(--black);
+  font-family: "Bebas Neue", "Arial Narrow", Impact, sans-serif;
+  font-size: clamp(2.5rem, 4vw, 4rem);
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  line-height: 0.9;
+  text-transform: uppercase;
+}
+
+.mode-dashboard.admin .mode-dashboard-grid strong {
+  color: var(--off-white);
+}
+
+.mode-dashboard-grid p {
+  margin: 0;
+  color: rgba(5, 5, 5, 0.62);
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+.mode-dashboard.admin .mode-dashboard-grid p {
+  color: var(--muted);
 }
 
 .commerce-router {
@@ -2364,6 +2458,7 @@ button {
   }
 
   .commerce-router,
+  .mode-dashboard,
   .manifesto,
   .lookbook-section,
   .shop-section,
@@ -2392,12 +2487,26 @@ button {
   }
 
   .lookbook-section,
+  .mode-dashboard,
   .shop-section,
   .product-studio,
   .wishlist-section,
   .tracking-section,
   .admin-section {
     padding-top: 72px;
+  }
+
+  .mode-dashboard-header {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .mode-dashboard-header .secondary-command {
+    width: min(100%, 280px);
+  }
+
+  .mode-dashboard-grid {
+    grid-template-columns: 1fr;
   }
 
   .lookbook-grid,

@@ -61,8 +61,36 @@ const adminLinks = [
   ["admin-settings", "Settings"]
 ];
 
+function buildSizeStock(sizes, stock, existingSizeStock) {
+  if (existingSizeStock && Object.keys(existingSizeStock).length) return existingSizeStock;
+
+  const base = Math.floor(stock / Math.max(sizes.length, 1));
+  const remainder = stock % Math.max(sizes.length, 1);
+
+  return sizes.reduce((map, size, index) => {
+    map[size] = base + (index < remainder ? 1 : 0);
+    return map;
+  }, {});
+}
+
+function getSizeStock(product, size) {
+  return Math.max(0, Number(product.sizeStock?.[size] ?? product.stock ?? 0));
+}
+
+function getStockLabel(count) {
+  if (count <= 0) return "Sold out";
+  if (count <= 2) return `Only ${count} left`;
+  return `${count} left`;
+}
+
+function getImageSize(src = "") {
+  return src.includes("first-piece") ? { width: 1086, height: 1448 } : { width: 627, height: 627 };
+}
+
 function normalizeProduct(product) {
   const image = product.image || product.imageUrl || product.images?.[0]?.src || fallbackImage;
+  const sizes = product.sizes?.length ? product.sizes : ["S", "M", "L"];
+  const stock = product.stock || 0;
 
   return {
     ...product,
@@ -72,9 +100,10 @@ function normalizeProduct(product) {
     ),
     image,
     images: product.images?.length ? product.images : [{ label: "Front", src: image }],
-    sizes: product.sizes?.length ? product.sizes : ["S", "M", "L"],
+    sizes,
+    sizeStock: buildSizeStock(sizes, stock, product.sizeStock),
     specs: product.specs || { Fit: product.type || "Ready to wear", Stock: `${product.stock || 0} units` },
-    stock: product.stock || 0,
+    stock,
     tags: product.tags || []
   };
 }
@@ -94,6 +123,7 @@ function App() {
   const [catalogStatus, setCatalogStatus] = useState(hasApi ? "connecting" : "local");
   const [activeCategory, setActiveCategory] = useState("All");
   const [activeCollection, setActiveCollection] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedProductId, setSelectedProductId] = useState(products[0].id);
   const [selectedSize, setSelectedSize] = useState(products[0].sizes[1]);
   const [selectedColor, setSelectedColor] = useState(products[0].colors[0].name);
@@ -107,6 +137,7 @@ function App() {
   const [route, setRoute] = useState(window.location.hash.replace("#", "") || "home");
 
   const selectedProduct = catalog.find((product) => product.id === selectedProductId) || catalog[0] || products[0];
+  const selectedSizeStock = getSizeStock(selectedProduct, selectedSize);
   const wishlistProducts = useMemo(
     () => catalog.filter((product) => wishlist.includes(product.id)),
     [catalog, wishlist]
@@ -116,9 +147,23 @@ function App() {
     return catalog.filter((product) => {
       const categoryMatch = activeCategory === "All" || product.category === activeCategory;
       const collectionMatch = activeCollection === "All" || product.collection === activeCollection;
-      return categoryMatch && collectionMatch;
+      const query = searchQuery.trim().toLowerCase();
+      const searchable = [
+        product.name,
+        product.collection,
+        product.category,
+        product.type,
+        product.tagline,
+        product.description,
+        ...(product.tags || [])
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      const searchMatch = !query || searchable.includes(query);
+      return categoryMatch && collectionMatch && searchMatch;
     });
-  }, [activeCategory, activeCollection, catalog]);
+  }, [activeCategory, activeCollection, catalog, searchQuery]);
 
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -185,10 +230,15 @@ function App() {
   }
 
   useEffect(() => {
-    setSelectedSize(selectedProduct.sizes[0]);
+    const nextSize = selectedProduct.sizes.find((size) => getSizeStock(selectedProduct, size) > 0) || selectedProduct.sizes[0];
+    setSelectedSize(nextSize);
     setSelectedColor(selectedProduct.colors[0].name);
     setSelectedQuantity(1);
   }, [selectedProduct.id]);
+
+  useEffect(() => {
+    setSelectedQuantity((quantity) => Math.min(Math.max(1, quantity), Math.max(1, selectedSizeStock)));
+  }, [selectedSizeStock]);
 
   function selectProduct(product) {
     setSelectedProductId(product.id);
@@ -196,7 +246,9 @@ function App() {
   }
 
   function addToCart() {
-    const requestedQuantity = Math.min(selectedQuantity, selectedProduct.stock);
+    if (selectedSizeStock <= 0) return;
+
+    const requestedQuantity = Math.min(selectedQuantity, selectedSizeStock);
 
     setCart((current) => {
       const existing = current.find(
@@ -206,7 +258,7 @@ function App() {
       if (existing) {
         return current.map((item) =>
           item.cartId === existing.cartId
-            ? { ...item, quantity: Math.min(selectedProduct.stock, item.quantity + requestedQuantity) }
+            ? { ...item, quantity: Math.min(selectedSizeStock, item.quantity + requestedQuantity) }
             : item
         );
       }
@@ -221,7 +273,7 @@ function App() {
           size: selectedSize,
           color: selectedColor,
           quantity: requestedQuantity,
-          stock: selectedProduct.stock,
+          stock: selectedSizeStock,
           image: selectedProduct.image,
           imageClass: selectedProduct.imageClass
         }
@@ -334,11 +386,15 @@ function App() {
           activeCollection={activeCollection}
           onCategory={setActiveCategory}
           onCollection={setActiveCollection}
+          onSearch={setSearchQuery}
+          searchQuery={searchQuery}
         />
         <StorySections />
         <Shop
           products={filteredProducts}
+          isLoading={catalogStatus === "connecting"}
           selectedProductId={selectedProduct.id}
+          searchQuery={searchQuery}
           wishlist={wishlist}
           onSelect={selectProduct}
           onWishlist={toggleWishlist}
@@ -348,6 +404,7 @@ function App() {
           selectedSize={selectedSize}
           selectedColor={selectedColor}
           selectedQuantity={selectedQuantity}
+          selectedSizeStock={selectedSizeStock}
           cart={cart}
           subtotal={subtotal}
           orderMessage={orderMessage}
@@ -385,7 +442,7 @@ function App() {
 function LuxuryLoader() {
   return (
     <div className="luxury-loader" aria-hidden="true">
-      <img alt="" src={brandLogo} />
+      <img alt="" src={brandLogo} width="1254" height="1254" />
       <span>MG69</span>
     </div>
   );
@@ -400,7 +457,7 @@ function Header({ appMode, itemCount, onMenu, onMode, route, wishlistCount }) {
         <Menu />
       </button>
       <a className="brand" href="#home">
-        <img alt="" src={brandLogo} />
+        <img alt="" src={brandLogo} width="1254" height="1254" />
         <span>MG69</span>
       </a>
       <nav className="primary-nav" aria-label="Primary navigation">
@@ -419,9 +476,9 @@ function Header({ appMode, itemCount, onMenu, onMode, route, wishlistCount }) {
             Admin
           </button>
         </div>
-        <button className="icon-button" type="button" aria-label="Search collection">
+        <a className="icon-button" href="#shop" aria-label="Search collection">
           <Search />
-        </button>
+        </a>
         <a className="bag-button wish-counter" href="#wishlist" aria-label="View wishlist">
           <Heart />
           <span>{wishlistCount}</span>
@@ -467,7 +524,7 @@ function AppDrawer({
           >
             <div className="drawer-header">
               <a className="brand" href="#home" onClick={onClose}>
-                <img alt="" src={brandLogo} />
+                <img alt="" src={brandLogo} width="1254" height="1254" />
                 <span>MG69</span>
               </a>
               <button className="icon-button" onClick={onClose} type="button" aria-label="Close menu">
@@ -620,7 +677,12 @@ function Hero() {
             <span>Royal street</span>
           </div>
           <a className="hero-feature-piece" href="#product">
-            <img alt={`${products[0].name} featured product`} src={products[0].image} />
+            <img
+              alt={`${products[0].name} featured product`}
+              fetchPriority="high"
+              src={products[0].image}
+              {...getImageSize(products[0].image)}
+            />
             <span>MG69 Signature Piece</span>
             <strong>{products[0].name}</strong>
           </a>
@@ -654,7 +716,14 @@ function Hero() {
                 />
               ))}
             </div>
-            <img className="hero-logo" alt="MG69 Street Luxury Redefined gold crest logo" src={brandLogo} />
+            <img
+              className="hero-logo"
+              alt="MG69 Street Luxury Redefined gold crest logo"
+              fetchPriority="high"
+              src={brandLogo}
+              width="1254"
+              height="1254"
+            />
           </motion.div>
           <motion.a
             className="floating-product-card"
@@ -662,7 +731,12 @@ function Hero() {
             animate={{ y: [0, -12, 0], x: [0, 5, 0] }}
             transition={{ duration: 6.8, ease: "easeInOut", repeat: Infinity }}
           >
-            <img alt={`${products[0].name} floating product preview`} src={products[0].image} />
+            <img
+              alt={`${products[0].name} floating product preview`}
+              fetchPriority="high"
+              src={products[0].image}
+              {...getImageSize(products[0].image)}
+            />
             <span>First Piece</span>
             <strong>{money(products[0].price)}</strong>
           </motion.a>
@@ -672,7 +746,7 @@ function Hero() {
   );
 }
 
-function CategoryNavigator({ activeCategory, activeCollection, onCategory, onCollection }) {
+function CategoryNavigator({ activeCategory, activeCollection, onCategory, onCollection, onSearch, searchQuery }) {
   return (
     <section className="commerce-router" aria-label="Shop navigation">
       <div className="router-block">
@@ -705,6 +779,19 @@ function CategoryNavigator({ activeCategory, activeCollection, onCategory, onCol
           ))}
         </div>
       </div>
+      <label className="router-block search-block">
+        <span className="eyebrow">Search catalog</span>
+        <div className="catalog-search">
+          <Search size={18} />
+          <input
+            aria-label="Search MG69 products"
+            onChange={(event) => onSearch(event.target.value)}
+            placeholder="Search hoodie, tee, coat..."
+            type="search"
+            value={searchQuery}
+          />
+        </div>
+      </label>
     </section>
   );
 }
@@ -744,7 +831,7 @@ function StorySections() {
               viewport={{ once: true, margin: "-80px" }}
               whileInView={{ opacity: 1, y: 0 }}
             >
-              <img alt={`${label} MG69 lookbook`} src={image} loading="lazy" />
+              <img alt={`${label} MG69 lookbook`} src={image} loading="lazy" {...getImageSize(image)} />
               <span>{label}</span>
             </motion.article>
           ))}
@@ -754,7 +841,7 @@ function StorySections() {
   );
 }
 
-function Shop({ products, selectedProductId, wishlist, onSelect, onWishlist }) {
+function Shop({ isLoading, products, searchQuery, selectedProductId, wishlist, onSelect, onWishlist }) {
   return (
     <section className="shop-section" id="shop">
       <div className="section-heading">
@@ -762,28 +849,53 @@ function Shop({ products, selectedProductId, wishlist, onSelect, onWishlist }) {
         <h2>Shop MG69</h2>
       </div>
       <div className="shop-toolbar">
-        <span>{products.length} products</span>
-        <span><SlidersHorizontal size={16} /> Filter-ready architecture</span>
+        <span>{isLoading ? "Loading catalog" : `${products.length} products`}</span>
+        <span><SlidersHorizontal size={16} /> {searchQuery ? `Search: ${searchQuery}` : "Filter-ready architecture"}</span>
       </div>
       <div className="product-list">
-        <AnimatePresence mode="popLayout">
-          {products.map((product) => (
-            <ProductCard
-              isSelected={selectedProductId === product.id}
-              isWishlisted={wishlist.includes(product.id)}
-              key={product.id}
-              product={product}
-              onSelect={() => onSelect(product)}
-              onWishlist={() => onWishlist(product.id)}
-            />
-          ))}
-        </AnimatePresence>
+        {isLoading ? (
+          <ProductSkeletons />
+        ) : products.length === 0 ? (
+          <div className="empty-panel catalog-empty">
+            <Search />
+            <h3>No pieces found</h3>
+            <p>Try another search or reset the collection filters.</p>
+          </div>
+        ) : (
+          <AnimatePresence mode="popLayout">
+            {products.map((product) => (
+              <ProductCard
+                isSelected={selectedProductId === product.id}
+                isWishlisted={wishlist.includes(product.id)}
+                key={product.id}
+                product={product}
+                onSelect={() => onSelect(product)}
+                onWishlist={() => onWishlist(product.id)}
+              />
+            ))}
+          </AnimatePresence>
+        )}
       </div>
     </section>
   );
 }
 
+function ProductSkeletons() {
+  return Array.from({ length: 4 }, (_, index) => (
+    <article className="product-card product-skeleton" key={`skeleton-${index}`} aria-hidden="true">
+      <div className="skeleton-shimmer image" />
+      <div className="skeleton-stack">
+        <span />
+        <strong />
+        <p />
+      </div>
+    </article>
+  ));
+}
+
 function ProductCard({ product, isSelected, isWishlisted, onSelect, onWishlist }) {
+  const imageSize = getImageSize(product.image);
+
   return (
     <motion.article
       className={`product-card ${isSelected ? "selected" : ""}`}
@@ -793,7 +905,7 @@ function ProductCard({ product, isSelected, isWishlisted, onSelect, onWishlist }
       exit={{ opacity: 0, scale: 0.96 }}
     >
       <button className="product-thumb" onClick={onSelect} type="button">
-        <img alt={`${product.name} front product shot`} src={product.image} loading="lazy" />
+        <img alt={`${product.name} front product shot`} src={product.image} loading="lazy" {...imageSize} />
       </button>
       <button className={`wish-button ${isWishlisted ? "active" : ""}`} onClick={onWishlist} type="button">
         <Heart size={18} />
@@ -802,7 +914,7 @@ function ProductCard({ product, isSelected, isWishlisted, onSelect, onWishlist }
         <div className="product-meta">
           <span>{product.category}</span>
           <span>{product.collection}</span>
-          <span>{product.stock} in stock</span>
+          <span>{getStockLabel(product.stock)}</span>
         </div>
         <h3>{product.name}</h3>
         <p>{product.tagline}</p>
@@ -817,6 +929,7 @@ function ProductStudio({
   selectedSize,
   selectedColor,
   selectedQuantity,
+  selectedSizeStock,
   cart,
   subtotal,
   orderMessage,
@@ -844,6 +957,8 @@ function ProductStudio({
             <img
               alt={`${product.name} ${gallery.find((image) => image.src === activeImage)?.label || "product"} view`}
               src={activeImage}
+              loading="lazy"
+              {...getImageSize(activeImage)}
             />
           </div>
           <button
@@ -862,7 +977,7 @@ function ProductStudio({
               onClick={() => setActiveImage(image.src)}
               type="button"
             >
-              <img alt={`${product.name} ${image.label} thumbnail`} src={image.src} loading="lazy" />
+              <img alt={`${product.name} ${image.label} thumbnail`} src={image.src} loading="lazy" {...getImageSize(image.src)} />
               <span>{image.label}</span>
             </button>
           ))}
@@ -890,14 +1005,16 @@ function ProductStudio({
             selectedSize={selectedSize}
             selectedQuantity={selectedQuantity}
             stock={product.stock}
+            selectedSizeStock={selectedSizeStock}
+            sizeStock={product.sizeStock}
             sizes={product.sizes}
             onColor={onColor}
             onPurchaseQuantity={onPurchaseQuantity}
             onSize={onSize}
           />
 
-          <button className="primary-command full" onClick={onAdd} type="button">
-            Add {selectedQuantity} to cart
+          <button className="primary-command full" disabled={selectedSizeStock <= 0} onClick={onAdd} type="button">
+            {selectedSizeStock <= 0 ? "Sold out" : `Add ${selectedQuantity} to cart`}
           </button>
         </div>
       </div>
@@ -918,6 +1035,8 @@ function VariantSelector({
   selectedColor,
   selectedQuantity,
   selectedSize,
+  selectedSizeStock,
+  sizeStock,
   sizes,
   stock,
   onColor,
@@ -952,23 +1071,31 @@ function VariantSelector({
           <button type="button">Size guide</button>
         </div>
         <div className="size-options">
-          {sizes.map((size) => (
-            <button
-              className={selectedSize === size ? "selected" : ""}
-              key={size}
-              onClick={() => onSize(size)}
-              type="button"
-            >
-              {size}
-            </button>
-          ))}
+          {sizes.map((size) => {
+            const count = Math.max(0, Number(sizeStock?.[size] ?? stock));
+            const isSoldOut = count <= 0;
+
+            return (
+              <button
+                className={`${selectedSize === size ? "selected" : ""} ${isSoldOut ? "sold-out" : ""}`}
+                disabled={isSoldOut}
+                key={size}
+                onClick={() => onSize(size)}
+                title={getStockLabel(count)}
+                type="button"
+              >
+                <span>{size}</span>
+                <small>{isSoldOut ? "Out" : count}</small>
+              </button>
+            );
+          })}
         </div>
       </div>
 
       <div className="purchase-controls">
         <div className="stock-strip">
-          <span>{stock} pieces available</span>
-          <strong>{selectedSize} / {selectedColor}</strong>
+          <span>{getStockLabel(selectedSizeStock)} in {selectedSize}</span>
+          <strong>{selectedColor}</strong>
         </div>
         <div className="quantity-control" aria-label="Quantity selector">
           <button
@@ -980,8 +1107,8 @@ function VariantSelector({
           </button>
           <strong>{selectedQuantity}</strong>
           <button
-            disabled={selectedQuantity >= stock}
-            onClick={() => onPurchaseQuantity(Math.min(stock, selectedQuantity + 1))}
+            disabled={selectedQuantity >= selectedSizeStock}
+            onClick={() => onPurchaseQuantity(Math.min(selectedSizeStock, selectedQuantity + 1))}
             type="button"
           >
             <Plus size={14} />
@@ -1014,7 +1141,9 @@ function CartPanel({ cart, subtotal, orderMessage, onQuantity, onCheckout }) {
           {cart.map((item) => (
             <article className="bag-line" key={item.cartId}>
               <div className={`bag-line-image ${item.image ? "" : `image-crop ${item.imageClass || ""}`}`}>
-                {item.image && <img alt={`${item.name} cart preview`} src={item.image} loading="lazy" />}
+                {item.image && (
+                  <img alt={`${item.name} cart preview`} src={item.image} loading="lazy" {...getImageSize(item.image)} />
+                )}
               </div>
               <div>
                 <h3>{item.name}</h3>
@@ -1092,7 +1221,7 @@ function WishlistPanel({ products, onSelect, onWishlist }) {
               viewport={{ once: true }}
             >
               <button className="wishlist-image" onClick={() => onSelect(product)} type="button">
-                <img alt={`${product.name} wishlist preview`} src={product.image} loading="lazy" />
+                <img alt={`${product.name} wishlist preview`} src={product.image} loading="lazy" {...getImageSize(product.image)} />
               </button>
               <div>
                 <span>{product.collection}</span>

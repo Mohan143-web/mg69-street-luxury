@@ -1,0 +1,14 @@
+{
+  "name": "MG69 Street Luxury",
+  "short_name": "MG69",
+  "icons": [
+    {
+      "src": "/mg69-street-luxury/brand/mg69-logo3.png",
+      "sizes": "1254x1254",
+      "type": "image/png"
+    }
+  ],
+  "theme_color": "#050505",
+  "background_color": "#f5ead6",
+  "display": "standalone"
+}

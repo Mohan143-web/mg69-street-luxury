@@ -2,13 +2,20 @@
 
 React + Vite ecommerce storefront for MG69, built around a luxury minimal streetwear direction.
 
+Live demo: https://mohan143-web.github.io/mg69-street-luxury/
+
+![MG69 Street Luxury preview](public/og-preview.png)
+
 ## Current Upgrade
 
 - Original generated front/back product imagery for tee, hoodie, jersey, and coat
 - Product gallery thumbnails for front/back shots
 - Men, Women, and Drop 001 hash collection routes
-- Size, color, quantity, and stock-aware cart controls
+- Customer/Admin mode dashboards with visible storefront and command data
+- Client-side product search across name, tags, category, and collection
+- Size, color, quantity, per-size stock messaging, and sold-out size states
 - Persistent cart and wishlist via `localStorage`
+- GitHub Pages 404 fallback, favicon, manifest, and Open Graph preview metadata
 - Optional API product hydration through `VITE_API_URL`
 
 ## Frontend
@@ -34,7 +41,18 @@ npm install
 npm run dev
 ```
 
-Copy `.env.example` and fill in MongoDB Atlas, Stripe, and client URL values. Use `POST /api/products/seed` after MongoDB is connected to seed the first MG69 catalog.
+Copy `server/.env.example` to `server/.env` and fill in MongoDB Atlas, Stripe, and client URL values.
+
+| Variable | Example | Purpose |
+| --- | --- | --- |
+| `PORT` | `8080` | Local API port |
+| `NODE_ENV` | `development` | Disables seed endpoint in production |
+| `CLIENT_URL` | `https://mohan143-web.github.io,http://localhost:5173` | Allowed CORS origins |
+| `MONGODB_URI` | `mongodb+srv://USER:PASSWORD@cluster.mongodb.net/mg69` | MongoDB Atlas connection |
+| `STRIPE_SECRET_KEY` | `sk_test_...` | Stripe Checkout test secret |
+| `ALLOW_RESEED` | `false` | Set `true` locally to replace seeded products |
+
+Use `POST /api/products/seed` after MongoDB is connected to seed the first MG69 catalog. The seed endpoint is blocked in production and refuses to overwrite an existing catalog unless `ALLOW_RESEED=true`.
 
 ## Data Models
 
@@ -45,3 +63,5 @@ Copy `.env.example` and fill in MongoDB Atlas, Stripe, and client URL values. Us
 ## Deploy
 
 GitHub Pages should be configured to serve from `main` / `docs`.
+
+The app uses hash routes for internal navigation and ships `public/404.html` as a Pages fallback for direct refreshes.

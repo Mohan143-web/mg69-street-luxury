@@ -10,8 +10,23 @@ import { Product } from "./models/Product.js";
 const app = express();
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
 const hasDatabase = Boolean(process.env.MONGODB_URI);
+const allowedOrigins = (process.env.CLIENT_URL || "https://mohan143-web.github.io,http://localhost:5173,http://127.0.0.1:5173")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
-app.use(cors({ origin: process.env.CLIENT_URL || "*" }));
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error("Origin not allowed by MG69 CORS policy."));
+    }
+  })
+);
 app.use(express.json());
 
 app.get("/api/health", (_request, response) => {
@@ -83,12 +98,30 @@ app.post("/api/checkout/session", async (request, response) => {
 });
 
 app.post("/api/products/seed", async (_request, response) => {
+  if (process.env.NODE_ENV === "production") {
+    response.status(403).json({ error: "Product seeding is disabled in production." });
+    return;
+  }
+
   if (!hasDatabase) {
     response.status(503).json({ error: "MongoDB is not configured. Set MONGODB_URI before seeding products." });
     return;
   }
 
-  await Product.deleteMany({});
+  const existingCount = await Product.countDocuments({});
+
+  if (existingCount > 0 && process.env.ALLOW_RESEED !== "true") {
+    response.status(409).json({
+      error: "Products already exist. Set ALLOW_RESEED=true locally to replace the catalog.",
+      count: existingCount
+    });
+    return;
+  }
+
+  if (process.env.ALLOW_RESEED === "true") {
+    await Product.deleteMany({});
+  }
+
   const products = await Product.insertMany(fallbackProducts);
   response.status(201).json({ count: products.length });
 });

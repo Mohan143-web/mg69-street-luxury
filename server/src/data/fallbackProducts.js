@@ -7,6 +7,7 @@ export const fallbackProducts = [
     category: "Men",
     type: "Signature Hoodie",
     stock: 25,
+    sizeStock: { S: 5, M: 7, L: 6, XL: 4, XXL: 3 },
     imageUrl: "/products/first-piece-front.png",
     images: [
       { label: "Front", src: "/products/first-piece-front.png" },
@@ -29,6 +30,7 @@ export const fallbackProducts = [
     category: "Men",
     type: "Oversized Tee",
     stock: 20,
+    sizeStock: { S: 4, M: 7, L: 6, XL: 3 },
     imageUrl: "/products/oversized-heavyweight-tee.png",
     images: [
       { label: "Front", src: "/products/oversized-heavyweight-tee.png" },
@@ -51,6 +53,7 @@ export const fallbackProducts = [
     category: "Men",
     type: "Heavy Hoodie",
     stock: 14,
+    sizeStock: { S: 2, M: 4, L: 4, XL: 3, XXL: 1 },
     imageUrl: "/products/midnight-city-hoodie.png",
     images: [
       { label: "Front", src: "/products/midnight-city-hoodie.png" },
@@ -73,6 +76,7 @@ export const fallbackProducts = [
     category: "Women",
     type: "Layered Jersey",
     stock: 18,
+    sizeStock: { XS: 3, S: 5, M: 6, L: 4 },
     imageUrl: "/products/afterimage-jersey.png",
     images: [
       { label: "Front", src: "/products/afterimage-jersey.png" },
@@ -95,6 +99,7 @@ export const fallbackProducts = [
     category: "Women",
     type: "Long Coat",
     stock: 8,
+    sizeStock: { XS: 1, S: 2, M: 3, L: 2 },
     imageUrl: "/products/signal-long-coat.png",
     images: [
       { label: "Front", src: "/products/signal-long-coat.png" },

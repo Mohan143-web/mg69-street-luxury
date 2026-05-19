@@ -506,6 +506,14 @@ function Hero() {
     <section className="hero" id="home">
       <div className="hero-cream-field" aria-hidden="true" />
       <div className="hero-gold-beam" aria-hidden="true" />
+      <div className="hero-motion-layer" aria-hidden="true">
+        <span className="motion-beam beam-one" />
+        <span className="motion-beam beam-two" />
+        <span className="motion-beam beam-three" />
+        <span className="orbital-line orbit-one" />
+        <span className="orbital-line orbit-two" />
+        <span className="orbital-line orbit-three" />
+      </div>
       <motion.div
         className="hero-content hero-layout"
         initial={{ opacity: 0, y: 32 }}
@@ -534,27 +542,43 @@ function Hero() {
             <strong>{products[0].name}</strong>
           </a>
         </div>
-        <motion.div
-          className="logo-stage"
-          animate={{ y: [0, -10, 0], rotate: [0, 0.4, 0] }}
-          transition={{ duration: 7.5, ease: "easeInOut", repeat: Infinity }}
-        >
-          <div className="logo-aura" aria-hidden="true" />
-          <div className="particle-field" aria-hidden="true">
-            {logoParticles.map((particle) => (
-              <span
-                key={`${particle.x}-${particle.y}`}
-                style={{
-                  "--particle-delay": particle.delay,
-                  "--particle-size": particle.size,
-                  "--particle-x": particle.x,
-                  "--particle-y": particle.y
-                }}
-              />
-            ))}
-          </div>
-          <img className="hero-logo" alt="MG69 Street Luxury Redefined gold crest logo" src={brandLogo} />
-        </motion.div>
+        <div className="hero-visual">
+          <motion.div
+            className="logo-stage"
+            animate={{ y: [0, -8, 0], rotate: [0, 0.35, 0] }}
+            transition={{ duration: 7.5, ease: "easeInOut", repeat: Infinity }}
+          >
+            <div className="logo-aura" aria-hidden="true" />
+            <div className="logo-ring-field" aria-hidden="true">
+              <span />
+              <span />
+            </div>
+            <div className="particle-field" aria-hidden="true">
+              {logoParticles.map((particle) => (
+                <span
+                  key={`${particle.x}-${particle.y}`}
+                  style={{
+                    "--particle-delay": particle.delay,
+                    "--particle-size": particle.size,
+                    "--particle-x": particle.x,
+                    "--particle-y": particle.y
+                  }}
+                />
+              ))}
+            </div>
+            <img className="hero-logo" alt="MG69 Street Luxury Redefined gold crest logo" src={brandLogo} />
+          </motion.div>
+          <motion.a
+            className="floating-product-card"
+            href="#product"
+            animate={{ y: [0, -12, 0], x: [0, 5, 0] }}
+            transition={{ duration: 6.8, ease: "easeInOut", repeat: Infinity }}
+          >
+            <img alt={`${products[0].name} floating product preview`} src={products[0].image} />
+            <span>First Piece</span>
+            <strong>{money(products[0].price)}</strong>
+          </motion.a>
+        </div>
       </motion.div>
     </section>
   );

@@ -466,6 +466,94 @@ button {
   animation: driftBlur 10s ease-in-out infinite alternate;
 }
 
+.hero-motion-layer {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.motion-beam {
+  position: absolute;
+  width: min(38vw, 520px);
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgba(255, 229, 154, 0.72), transparent);
+  filter: blur(0.4px);
+  opacity: 0.45;
+  transform-origin: center;
+  animation: beamTravel 9s ease-in-out infinite;
+}
+
+.beam-one {
+  top: 26%;
+  right: -8%;
+  animation-delay: 0s;
+}
+
+.beam-two {
+  --beam-rotate: -9deg;
+  top: 58%;
+  right: 13%;
+  width: min(30vw, 440px);
+  opacity: 0.34;
+  animation-delay: 2.4s;
+}
+
+.beam-three {
+  --beam-rotate: 7deg;
+  top: 78%;
+  right: -4%;
+  width: min(34vw, 470px);
+  opacity: 0.28;
+  animation-delay: 4.8s;
+}
+
+.orbital-line {
+  position: absolute;
+  right: clamp(18px, 10vw, 150px);
+  top: 50%;
+  width: min(38vw, 520px);
+  aspect-ratio: 1;
+  border: 1px solid rgba(215, 168, 63, 0.22);
+  border-radius: 999px;
+  transform: translateY(-50%) rotate(var(--orbit-rotate, 0deg));
+  animation: orbitSpin var(--orbit-duration, 22s) linear infinite;
+}
+
+.orbital-line::after {
+  position: absolute;
+  right: 9%;
+  top: 16%;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--gold-bright);
+  box-shadow: 0 0 24px rgba(255, 229, 154, 0.75);
+  content: "";
+}
+
+.orbit-one {
+  --orbit-duration: 28s;
+  --orbit-rotate: -15deg;
+}
+
+.orbit-two {
+  --orbit-duration: 36s;
+  --orbit-rotate: 38deg;
+  width: min(31vw, 440px);
+  opacity: 0.75;
+  animation-direction: reverse;
+}
+
+.orbit-three {
+  --orbit-duration: 44s;
+  --orbit-rotate: 82deg;
+  width: min(45vw, 610px);
+  opacity: 0.42;
+}
+
 .hero-content {
   display: grid;
   gap: 18px;
@@ -553,13 +641,26 @@ button {
 }
 
 .hero-stat-row {
+  position: relative;
   gap: 0;
   margin-top: 6px;
   border: 1px solid rgba(127, 83, 23, 0.18);
   background: rgba(255, 247, 232, 0.42);
+  overflow: hidden;
+}
+
+.hero-stat-row::before {
+  position: absolute;
+  inset: 0;
+  width: 44%;
+  background: linear-gradient(90deg, transparent, rgba(255, 229, 154, 0.28), transparent);
+  content: "";
+  transform: translateX(-120%);
+  animation: statSweep 4.8s ease-in-out infinite;
 }
 
 .hero-stat-row span {
+  position: relative;
   min-height: 46px;
   display: grid;
   place-items: center;
@@ -590,6 +691,7 @@ button {
   color: var(--black);
   text-decoration: none;
   box-shadow: 0 18px 50px rgba(127, 83, 23, 0.12);
+  animation: featureFloat 7s ease-in-out infinite;
   transition: transform 0.35s ease, border-color 0.35s ease, background 0.35s ease;
 }
 
@@ -631,12 +733,19 @@ button {
   text-transform: uppercase;
 }
 
+.hero-visual {
+  position: relative;
+  justify-self: end;
+  display: grid;
+  place-items: center;
+  width: min(42vw, 500px);
+}
+
 .logo-stage {
   position: relative;
   display: grid;
   place-items: center;
-  justify-self: end;
-  width: min(43vw, 560px);
+  width: min(38vw, 455px);
   aspect-ratio: 1;
   border: 1px solid rgba(215, 168, 63, 0.42);
   border-radius: 18px;
@@ -645,8 +754,8 @@ button {
     repeating-radial-gradient(circle at 24% 26%, rgba(127, 83, 23, 0.12) 0 1px, transparent 1px 9px);
   box-shadow:
     0 0 0 1px rgba(255, 229, 154, 0.12) inset,
-    0 26px 100px rgba(0, 0, 0, 0.48),
-    0 0 80px rgba(215, 168, 63, 0.24);
+    0 24px 80px rgba(0, 0, 0, 0.44),
+    0 0 64px rgba(215, 168, 63, 0.22);
   overflow: hidden;
 }
 
@@ -670,21 +779,86 @@ button {
 
 .logo-aura {
   position: absolute;
-  inset: 8%;
+  inset: 10%;
   border-radius: 999px;
   background: radial-gradient(circle, rgba(255, 229, 154, 0.72), rgba(215, 168, 63, 0.18) 46%, transparent 70%);
   filter: blur(22px);
   animation: logoGlow 3.6s ease-in-out infinite alternate;
 }
 
+.logo-ring-field {
+  position: absolute;
+  inset: 7%;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.logo-ring-field span {
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(215, 168, 63, 0.24);
+  border-radius: 999px;
+  transform: rotate(18deg);
+  animation: ringPulse 6.5s ease-in-out infinite;
+}
+
+.logo-ring-field span:last-child {
+  inset: 12%;
+  border-color: rgba(255, 229, 154, 0.22);
+  animation-delay: 1.4s;
+  animation-direction: reverse;
+}
+
 .hero-logo {
   position: relative;
   z-index: 2;
-  width: min(91%, 500px);
-  height: min(91%, 500px);
+  width: min(88%, 400px);
+  height: min(88%, 400px);
   border-radius: 14px;
   object-fit: cover;
   filter: drop-shadow(0 24px 54px rgba(77, 45, 6, 0.32));
+}
+
+.floating-product-card {
+  position: absolute;
+  right: -18px;
+  bottom: 22px;
+  z-index: 4;
+  display: grid;
+  grid-template-columns: 68px minmax(0, 1fr);
+  align-items: center;
+  gap: 4px 12px;
+  width: min(74%, 280px);
+  min-height: 92px;
+  padding: 10px 14px 10px 10px;
+  border: 1px solid rgba(255, 229, 154, 0.48);
+  border-radius: 8px;
+  background: rgba(9, 8, 7, 0.82);
+  color: var(--cream);
+  text-decoration: none;
+  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.38), 0 0 36px rgba(215, 168, 63, 0.18);
+  backdrop-filter: blur(18px);
+}
+
+.floating-product-card img {
+  grid-row: span 2;
+  width: 68px;
+  height: 72px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.floating-product-card span {
+  color: var(--gold-bright);
+  font-size: 0.66rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.floating-product-card strong {
+  align-self: start;
+  font-size: 1.1rem;
 }
 
 .particle-field {
@@ -1875,6 +2049,55 @@ button {
   }
 }
 
+@keyframes orbitSpin {
+  to {
+    transform: translateY(-50%) rotate(calc(var(--orbit-rotate, 0deg) + 360deg));
+  }
+}
+
+@keyframes beamTravel {
+  0% {
+    opacity: 0;
+    transform: translate3d(26%, 0, 0) rotate(var(--beam-rotate, -6deg));
+  }
+
+  24% {
+    opacity: 0.52;
+  }
+
+  58% {
+    opacity: 0.32;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate3d(-46%, 20px, 0) rotate(var(--beam-rotate, -6deg));
+  }
+}
+
+@keyframes statSweep {
+  0%,
+  42% {
+    transform: translateX(-120%);
+  }
+
+  78%,
+  100% {
+    transform: translateX(260%);
+  }
+}
+
+@keyframes featureFloat {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+
+  50% {
+    transform: translate3d(0, -7px, 0);
+  }
+}
+
 @keyframes logoGlow {
   from {
     opacity: 0.5;
@@ -1884,6 +2107,19 @@ button {
   to {
     opacity: 0.9;
     transform: scale(1.06);
+  }
+}
+
+@keyframes ringPulse {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(0.94) rotate(18deg);
+  }
+
+  50% {
+    opacity: 0.85;
+    transform: scale(1.05) rotate(32deg);
   }
 }
 
@@ -1931,8 +2167,12 @@ button {
     grid-template-columns: minmax(0, 1fr) minmax(320px, 0.8fr);
   }
 
+  .hero-visual {
+    width: min(40vw, 430px);
+  }
+
   .logo-stage {
-    width: min(40vw, 440px);
+    width: min(38vw, 390px);
   }
 
   .product-list,
@@ -2042,11 +2282,38 @@ button {
     font-size: 0.62rem;
   }
 
-  .logo-stage {
+  .hero-visual {
     order: -1;
     justify-self: center;
-    width: min(62vw, 260px);
+    width: min(76vw, 330px);
+  }
+
+  .logo-stage {
+    width: min(58vw, 250px);
     border-radius: 14px;
+  }
+
+  .floating-product-card {
+    right: -6px;
+    bottom: -10px;
+    width: min(80%, 238px);
+    min-height: 78px;
+    grid-template-columns: 54px minmax(0, 1fr);
+  }
+
+  .floating-product-card img {
+    width: 54px;
+    height: 58px;
+  }
+
+  .hero-motion-layer .orbital-line {
+    right: 9vw;
+    top: 31%;
+    width: min(82vw, 360px);
+  }
+
+  .motion-beam {
+    width: 72vw;
   }
 
   .hero-command {
@@ -2180,7 +2447,15 @@ button {
   }
 
   .logo-stage {
-    width: min(92vw, 360px);
+    width: min(56vw, 230px);
+  }
+
+  .floating-product-card {
+    position: relative;
+    right: auto;
+    bottom: auto;
+    width: min(100%, 260px);
+    margin-top: -18px;
   }
 
   .manifesto h2,

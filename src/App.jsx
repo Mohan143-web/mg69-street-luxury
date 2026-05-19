@@ -510,9 +510,6 @@ function Hero() {
         <span className="motion-beam beam-one" />
         <span className="motion-beam beam-two" />
         <span className="motion-beam beam-three" />
-        <span className="orbital-line orbit-one" />
-        <span className="orbital-line orbit-two" />
-        <span className="orbital-line orbit-three" />
       </div>
       <motion.div
         className="hero-content hero-layout"
@@ -543,6 +540,11 @@ function Hero() {
           </a>
         </div>
         <div className="hero-visual">
+          <div className="logo-orbit-field" aria-hidden="true">
+            <span className="orbital-line orbit-one" />
+            <span className="orbital-line orbit-two" />
+            <span className="orbital-line orbit-three" />
+          </div>
           <motion.div
             className="logo-stage"
             animate={{ y: [0, -8, 0], rotate: [0, 0.35, 0] }}

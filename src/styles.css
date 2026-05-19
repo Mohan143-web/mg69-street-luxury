@@ -734,18 +734,51 @@ button {
 }
 
 .hero-visual {
+  --hero-logo-stage: min(38vw, 455px);
   position: relative;
   justify-self: end;
   display: grid;
+  grid-template-rows: auto auto;
   place-items: center;
-  width: min(42vw, 500px);
+  gap: clamp(14px, 1.8vw, 24px);
+  width: min(42vw, 540px);
+}
+
+.logo-orbit-field {
+  position: absolute;
+  top: calc(var(--hero-logo-stage) / 2);
+  left: 50%;
+  z-index: 0;
+  width: calc(var(--hero-logo-stage) * 1.78);
+  aspect-ratio: 1;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+.logo-orbit-field .orbital-line {
+  inset: 0;
+  width: auto;
+  opacity: 0.5;
+  transform: rotate(var(--orbit-rotate, 0deg));
+  animation-name: orbitSpinCentered;
+}
+
+.logo-orbit-field .orbit-two {
+  inset: 10%;
+  opacity: 0.62;
+}
+
+.logo-orbit-field .orbit-three {
+  inset: -12%;
+  opacity: 0.34;
 }
 
 .logo-stage {
   position: relative;
+  z-index: 2;
   display: grid;
   place-items: center;
-  width: min(38vw, 455px);
+  width: var(--hero-logo-stage);
   aspect-ratio: 1;
   border: 1px solid rgba(215, 168, 63, 0.42);
   border-radius: 18px;
@@ -820,16 +853,18 @@ button {
 }
 
 .floating-product-card {
-  position: absolute;
-  right: -18px;
-  bottom: 22px;
+  position: relative;
+  right: auto;
+  bottom: auto;
   z-index: 4;
   display: grid;
   grid-template-columns: 68px minmax(0, 1fr);
   align-items: center;
   gap: 4px 12px;
-  width: min(74%, 280px);
+  justify-self: center;
+  width: min(86%, 340px);
   min-height: 92px;
+  margin-top: 4px;
   padding: 10px 14px 10px 10px;
   border: 1px solid rgba(255, 229, 154, 0.48);
   border-radius: 8px;
@@ -2055,6 +2090,12 @@ button {
   }
 }
 
+@keyframes orbitSpinCentered {
+  to {
+    transform: rotate(calc(var(--orbit-rotate, 0deg) + 360deg));
+  }
+}
+
 @keyframes beamTravel {
   0% {
     opacity: 0;
@@ -2168,6 +2209,7 @@ button {
   }
 
   .hero-visual {
+    --hero-logo-stage: min(38vw, 390px);
     width: min(40vw, 430px);
   }
 
@@ -2283,20 +2325,20 @@ button {
   }
 
   .hero-visual {
+    --hero-logo-stage: min(58vw, 250px);
     order: -1;
     justify-self: center;
     width: min(76vw, 330px);
   }
 
   .logo-stage {
-    width: min(58vw, 250px);
     border-radius: 14px;
   }
 
   .floating-product-card {
-    right: -6px;
-    bottom: -10px;
-    width: min(80%, 238px);
+    right: auto;
+    bottom: auto;
+    width: min(82%, 250px);
     min-height: 78px;
     grid-template-columns: 54px minmax(0, 1fr);
   }
@@ -2304,12 +2346,6 @@ button {
   .floating-product-card img {
     width: 54px;
     height: 58px;
-  }
-
-  .hero-motion-layer .orbital-line {
-    right: 9vw;
-    top: 31%;
-    width: min(82vw, 360px);
   }
 
   .motion-beam {
@@ -2447,15 +2483,12 @@ button {
   }
 
   .logo-stage {
-    width: min(56vw, 230px);
+    width: var(--hero-logo-stage);
   }
 
   .floating-product-card {
-    position: relative;
-    right: auto;
-    bottom: auto;
     width: min(100%, 260px);
-    margin-top: -18px;
+    margin-top: -2px;
   }
 
   .manifesto h2,

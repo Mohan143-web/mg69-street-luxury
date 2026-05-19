@@ -775,6 +775,7 @@ button {
 
 .logo-stage {
   position: relative;
+  isolation: isolate;
   z-index: 2;
   display: grid;
   place-items: center;
@@ -795,24 +796,29 @@ button {
 .logo-stage::before {
   position: absolute;
   inset: -24%;
+  z-index: 0;
   content: "";
   background: conic-gradient(from 90deg, transparent, rgba(255, 229, 154, 0.42), transparent, rgba(127, 83, 23, 0.22), transparent);
   animation: metalSweep 10s linear infinite;
+  pointer-events: none;
 }
 
 .logo-stage::after {
   position: absolute;
   inset: 0;
+  z-index: 1;
   content: "";
   background:
     linear-gradient(115deg, transparent 20%, rgba(255, 255, 255, 0.34) 44%, transparent 54%),
     radial-gradient(circle at 50% 45%, transparent 52%, rgba(5, 5, 5, 0.12) 100%);
   mix-blend-mode: soft-light;
+  pointer-events: none;
 }
 
 .logo-aura {
   position: absolute;
   inset: 10%;
+  z-index: 0;
   border-radius: 999px;
   background: radial-gradient(circle, rgba(255, 229, 154, 0.72), rgba(215, 168, 63, 0.18) 46%, transparent 70%);
   filter: blur(22px);
@@ -844,7 +850,7 @@ button {
 
 .hero-logo {
   position: relative;
-  z-index: 2;
+  z-index: 5;
   width: min(88%, 400px);
   height: min(88%, 400px);
   border-radius: 14px;
@@ -2333,6 +2339,7 @@ button {
 
   .logo-stage {
     border-radius: 14px;
+    overflow: hidden;
   }
 
   .floating-product-card {
@@ -2484,6 +2491,19 @@ button {
 
   .logo-stage {
     width: var(--hero-logo-stage);
+  }
+
+  .logo-stage::after {
+    opacity: 0.28;
+    animation: none;
+  }
+
+  .hero-logo {
+    width: 84%;
+    height: 84%;
+    object-fit: contain;
+    object-position: center;
+    mix-blend-mode: normal;
   }
 
   .floating-product-card {

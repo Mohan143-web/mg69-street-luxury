@@ -270,33 +270,42 @@ main,
   border-radius: 28px !important;
   transform-style: preserve-3d;
   margin: 0 auto !important;
-  overflow: visible !important;
+  isolation: isolate !important;
+  overflow: hidden !important;
 }
 
 .logo-stage::before {
+  z-index: 0 !important;
   animation-duration: 6.5s !important;
+  pointer-events: none !important;
 }
 
 .logo-stage::after {
+  z-index: 1 !important;
   border-radius: 28px !important;
   background:
     linear-gradient(105deg, transparent 10%, rgba(255, 255, 255, 0.42) 42%, transparent 54%),
     repeating-linear-gradient(0deg, transparent 0 18px, rgba(215, 168, 63, 0.06) 18px 19px),
     radial-gradient(circle at 50% 45%, transparent 52%, rgba(5, 5, 5, 0.12) 100%) !important;
   animation: mg69LogoShine 4.5s ease-in-out infinite;
+  pointer-events: none !important;
 }
 
 .hero-logo {
   display: block !important;
+  position: relative !important;
+  z-index: 5 !important;
   width: 88% !important;
   height: 88% !important;
   margin: auto !important;
   object-fit: contain !important;
   object-position: center !important;
+  mix-blend-mode: normal !important;
   animation: mg69LogoDepth 5.8s ease-in-out infinite alternate;
 }
 
 .logo-aura {
+  z-index: 0 !important;
   inset: 7% !important;
   animation: mg69AuraMove 4.8s ease-in-out infinite alternate !important;
 }
@@ -576,6 +585,19 @@ main,
   .logo-stage {
     max-width: calc(100vw - 28px);
     margin-top: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .logo-stage::after {
+    opacity: 0.28 !important;
+    animation: none !important;
+  }
+
+  .hero-logo {
+    width: 84% !important;
+    height: 84% !important;
+    object-fit: contain !important;
+    object-position: center !important;
   }
 
   .floating-product-card {

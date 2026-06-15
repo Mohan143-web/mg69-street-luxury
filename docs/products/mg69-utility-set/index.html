@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MG69 Utility Set | Street Luxury</title>
+    <meta name="description" content="MG69 Utility Set product page with separate front, back, side, color and detail views." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --black: #050505;
+        --panel: #0d0d0c;
+        --panel-2: #151412;
+        --cream: #efe4cf;
+        --muted: #9d9588;
+        --gold: #d7a84a;
+        --gold-light: #f3cf78;
+        --line: rgba(239, 228, 207, 0.14);
+        --line-gold: rgba(215, 168, 74, 0.5);
+        color-scheme: dark;
+        font-family: Inter, system-ui, sans-serif;
+      }
+
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0;
+        background:
+          radial-gradient(circle at 18% 8%, rgba(215, 168, 74, 0.15), transparent 30rem),
+          radial-gradient(circle at 80% 35%, rgba(239, 228, 207, 0.08), transparent 34rem),
+          var(--black);
+        color: var(--cream);
+      }
+
+      img { display: block; max-width: 100%; }
+      a { color: inherit; text-decoration: none; }
+      button, input { font: inherit; color: inherit; }
+      button { cursor: pointer; border: 0; }
+
+      .grain {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        opacity: 0.14;
+        mix-blend-mode: soft-light;
+        background-image: repeating-radial-gradient(circle at 30% 20%, rgba(255,255,255,.22) 0 1px, transparent 1px 4px);
+        z-index: 20;
+      }
+
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        align-items: center;
+        gap: 18px;
+        min-height: 76px;
+        padding: 14px clamp(16px, 4vw, 46px);
+        border-bottom: 1px solid var(--line);
+        background: rgba(5, 5, 5, 0.82);
+        backdrop-filter: blur(22px);
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        font-family: "Bebas Neue", Impact, sans-serif;
+        font-size: 2.1rem;
+        letter-spacing: .04em;
+      }
+
+      .brand img {
+        width: 42px;
+        height: 42px;
+        border-radius: 999px;
+        object-fit: cover;
+        box-shadow: 0 0 26px rgba(215,168,74,.35);
+      }
+
+      .nav {
+        display: flex;
+        justify-content: center;
+        gap: clamp(16px, 3vw, 40px);
+        color: rgba(239, 228, 207, 0.76);
+        font-size: .76rem;
+        font-weight: 900;
+        letter-spacing: .18em;
+        text-transform: uppercase;
+      }
+
+      .actions { display: flex; gap: 10px; align-items: center; }
+      .icon-btn, .cart-btn {
+        display: grid;
+        place-items: center;
+        width: 44px;
+        height: 44px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: rgba(255,255,255,.04);
+      }
+
+      .cart-btn { width: auto; padding: 0 16px; font-weight: 900; color: var(--gold-light); }
+
+      .page {
+        width: min(100% - 28px, 1560px);
+        margin: 0 auto;
+        padding: 24px 0 80px;
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(340px, .8fr);
+        gap: 18px;
+        min-height: calc(100vh - 110px);
+      }
+
+      .campaign-card, .product-info, .shot-card, .benefits, .detail-card, .variant-strip {
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: linear-gradient(145deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+        box-shadow: 0 24px 90px rgba(0,0,0,.38);
+        overflow: hidden;
+      }
+
+      .campaign-card {
+        position: relative;
+        min-height: 720px;
+        background: #111;
+      }
+
+      .campaign-card img {
+        width: 100%;
+        height: 100%;
+        min-height: 720px;
+        object-fit: cover;
+        filter: contrast(1.05) saturate(.9);
+      }
+
+      .campaign-overlay {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        align-content: end;
+        padding: clamp(22px, 4vw, 54px);
+        background: linear-gradient(180deg, transparent 45%, rgba(5,5,5,.82));
+      }
+
+      .eyebrow {
+        margin: 0 0 12px;
+        color: var(--gold-light);
+        font-size: .76rem;
+        font-weight: 900;
+        letter-spacing: .22em;
+        text-transform: uppercase;
+      }
+
+      h1, h2, h3 {
+        margin: 0;
+        font-family: "Bebas Neue", Impact, sans-serif;
+        font-weight: 400;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+      }
+
+      h1 { font-size: clamp(5rem, 12vw, 12rem); line-height: .82; }
+      h2 { font-size: clamp(3.4rem, 7vw, 7rem); line-height: .86; }
+      h3 { font-size: 2.2rem; line-height: .9; }
+
+      .product-info {
+        display: grid;
+        align-content: start;
+        gap: 20px;
+        padding: clamp(22px, 3vw, 42px);
+        background: linear-gradient(145deg, rgba(10,10,9,.96), rgba(18,16,13,.94));
+      }
+
+      .price { color: var(--gold-light); font-size: 2.15rem; font-weight: 900; }
+      .copy { color: rgba(239, 228, 207, .74); line-height: 1.7; }
+      .stars { color: var(--gold-light); letter-spacing: .12em; font-weight: 900; }
+
+      .feature-row, .color-row, .size-row, .qty-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .feature-pill {
+        flex: 1 1 130px;
+        min-height: 76px;
+        display: grid;
+        place-items: center;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        color: rgba(239,228,207,.82);
+        font-size: .72rem;
+        font-weight: 900;
+        letter-spacing: .12em;
+        text-align: center;
+        text-transform: uppercase;
+      }
+
+      .field-label {
+        display: flex;
+        justify-content: space-between;
+        color: var(--gold-light);
+        font-size: .72rem;
+        font-weight: 900;
+        letter-spacing: .16em;
+        text-transform: uppercase;
+      }
+
+      .color-btn, .size-btn, .qty-btn {
+        border: 1px solid var(--line);
+        background: rgba(255,255,255,.04);
+        border-radius: 10px;
+      }
+
+      .color-btn {
+        width: 48px;
+        height: 48px;
+        padding: 5px;
+      }
+
+      .color-btn span {
+        display: block;
+        height: 100%;
+        border-radius: 999px;
+        background: var(--swatch);
+      }
+
+      .color-btn.active, .size-btn.active { border-color: var(--gold-light); box-shadow: 0 0 0 1px var(--gold-light) inset; }
+      .size-btn { min-width: 54px; height: 46px; color: var(--cream); font-weight: 900; }
+      .qty-btn { width: 42px; height: 42px; font-size: 1.3rem; }
+      .qty-value { display: grid; place-items: center; min-width: 42px; font-weight: 900; }
+
+      .cta-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      .primary, .secondary {
+        min-height: 56px;
+        border-radius: 12px;
+        font-size: .82rem;
+        font-weight: 900;
+        letter-spacing: .14em;
+        text-transform: uppercase;
+      }
+      .primary { background: linear-gradient(135deg, var(--gold-light), var(--gold)); color: var(--black); }
+      .secondary { border: 1px solid var(--line-gold); background: transparent; color: var(--gold-light); }
+
+      .gallery-section { padding-top: 24px; }
+      .section-head {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 20px;
+        margin: 34px 0 18px;
+      }
+
+      .shots-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .shot-card {
+        position: relative;
+        min-height: 410px;
+        background: var(--panel);
+      }
+
+      .shot-card button {
+        display: block;
+        width: 100%;
+        height: 100%;
+        min-height: 410px;
+        background: transparent;
+        padding: 0;
+        text-align: left;
+      }
+
+      .shot-img {
+        width: 100%;
+        height: 100%;
+        min-height: 410px;
+        object-fit: cover;
+        object-position: var(--position, center);
+        filter: var(--filter, none);
+        transform: scale(var(--scale, 1));
+        transition: transform .6s ease, filter .6s ease;
+      }
+
+      .shot-card:hover .shot-img { transform: scale(calc(var(--scale, 1) + .04)); }
+      .shot-label {
+        position: absolute;
+        left: 14px;
+        bottom: 14px;
+        z-index: 2;
+        display: inline-flex;
+        padding: 8px 10px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: rgba(5,5,5,.72);
+        color: var(--gold-light);
+        font-size: .68rem;
+        font-weight: 900;
+        letter-spacing: .13em;
+        text-transform: uppercase;
+      }
+
+      .variant-strip {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0;
+        margin-top: 14px;
+      }
+      .variant-card {
+        position: relative;
+        min-height: 380px;
+        border-right: 1px solid var(--line);
+        background: #111;
+      }
+      .variant-card:last-child { border-right: 0; }
+      .variant-card img { width: 100%; height: 380px; object-fit: cover; filter: var(--filter); }
+      .variant-card span { position: absolute; left: 16px; bottom: 16px; font-weight: 900; letter-spacing: .16em; text-transform: uppercase; }
+
+      .details-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+        margin-top: 14px;
+      }
+      .detail-card { padding: 24px; min-height: 180px; }
+      .detail-card p { color: rgba(239,228,207,.7); line-height: 1.7; }
+
+      .benefits {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0;
+        margin-top: 24px;
+      }
+      .benefit { padding: 24px; border-right: 1px solid var(--line); }
+      .benefit:last-child { border-right: 0; }
+      .benefit strong { display: block; color: var(--gold-light); margin-bottom: 8px; text-transform: uppercase; letter-spacing: .12em; }
+      .benefit span { color: var(--muted); font-size: .82rem; }
+
+      .lightbox {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        display: none;
+        place-items: center;
+        padding: 28px;
+        background: rgba(0,0,0,.86);
+      }
+      .lightbox.open { display: grid; }
+      .lightbox img { max-height: 88vh; width: min(92vw, 1100px); object-fit: contain; border-radius: 18px; }
+      .lightbox button { position: fixed; top: 18px; right: 18px; width: 48px; height: 48px; border-radius: 999px; background: var(--gold); color: var(--black); font-size: 1.4rem; }
+
+      @media (max-width: 1080px) {
+        .hero { grid-template-columns: 1fr; }
+        .campaign-card, .campaign-card img { min-height: 540px; }
+        .shots-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .nav { display: none; }
+      }
+
+      @media (max-width: 640px) {
+        .topbar { grid-template-columns: 1fr auto; }
+        .brand span { font-size: 1.7rem; }
+        .actions .icon-btn { display: none; }
+        .campaign-card, .campaign-card img { min-height: 500px; }
+        .shots-grid, .variant-strip, .details-grid, .benefits, .cta-row { grid-template-columns: 1fr; }
+        .variant-card, .variant-card img { height: 420px; min-height: 420px; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="grain"></div>
+    <header class="topbar">
+      <a class="brand" href="/mg69-street-luxury/#home"><img src="/mg69-street-luxury/brand/mg69-logo3.png" alt="MG69 logo" /><span>MG69</span></a>
+      <nav class="nav"><a href="/mg69-street-luxury/#home">Home</a><a href="/mg69-street-luxury/#shop">Shop</a><a href="/mg69-street-luxury/#men">Men</a><a href="/mg69-street-luxury/#drop-001">Drop 001</a></nav>
+      <div class="actions"><button class="icon-btn" type="button">⌕</button><button class="icon-btn" type="button">♡</button><button class="cart-btn" type="button" id="cartCount">Cart 0</button></div>
+    </header>
+
+    <main class="page">
+      <section class="hero">
+        <article class="campaign-card">
+          <img src="/mg69-street-luxury/utility/utility-campaign-hero.jpg" alt="MG69 Utility Set campaign image" fetchpriority="high" />
+          <div class="campaign-overlay"><p class="eyebrow">MG69 Utility Collection / Drop 001</p><h1>Utility<br />Set</h1></div>
+        </article>
+        <aside class="product-info">
+          <p class="eyebrow">Home / Men / Drop 001</p>
+          <h2>MG69 Utility Set</h2>
+          <span class="price">$189.00</span>
+          <div class="stars">★★★★★ <span style="color:var(--muted); letter-spacing:.04em;">(128 reviews)</span></div>
+          <p class="copy">Premium oversized utility bomber jacket, hoodie and cargo pants set. Built for comfort, confidence, and luxury streetwear styling.</p>
+          <div class="feature-row"><span class="feature-pill">Premium Quality</span><span class="feature-pill">Limited Edition</span><span class="feature-pill">Oversized Fit</span><span class="feature-pill">Luxury Streetwear</span></div>
+          <div><div class="field-label"><span>Color</span><span id="colorName">Stone Grey</span></div><div class="color-row" id="colors"></div></div>
+          <div><div class="field-label"><span>Size</span><span>Size Guide</span></div><div class="size-row" id="sizes"></div></div>
+          <div><div class="field-label"><span>Quantity</span><span>25 units per size</span></div><div class="qty-row"><button class="qty-btn" id="minus">−</button><span class="qty-value" id="qty">1</span><button class="qty-btn" id="plus">+</button></div></div>
+          <div class="cta-row"><button class="primary" id="addCart">Add to Cart</button><button class="secondary">Add to Wishlist</button></div>
+          <p class="copy" id="status">Secure checkout ready. Cart saves locally.</p>
+        </aside>
+      </section>
+
+      <section class="gallery-section">
+        <div class="section-head"><div><p class="eyebrow">Separate Product Photos</p><h2>Front / Back / Side / Details</h2></div><p class="copy">No collage frames. Each card is a separate ecommerce image slot.</p></div>
+        <div class="shots-grid" id="shots"></div>
+      </section>
+
+      <section>
+        <div class="section-head"><div><p class="eyebrow">3 Colorways</p><h2>Stone Grey / Black / Olive</h2></div></div>
+        <div class="variant-strip" id="variants"></div>
+      </section>
+
+      <section class="details-grid">
+        <article class="detail-card"><p class="eyebrow">Fabric</p><h3>400 GSM Heavyweight</h3><p>Premium utility shell with heavyweight hoodie layering and structured cargo proportions.</p></article>
+        <article class="detail-card"><p class="eyebrow">Fit</p><h3>Oversized Utility</h3><p>Relaxed bomber silhouette, wide cargo profile, and modern street-luxury proportions.</p></article>
+      </section>
+
+      <section class="benefits"><div class="benefit"><strong>Premium Fabric</strong><span>Heavyweight feel</span></div><div class="benefit"><strong>Secure Payment</strong><span>Checkout ready</span></div><div class="benefit"><strong>Worldwide Shipping</strong><span>Fast and reliable</span></div><div class="benefit"><strong>Easy Returns</strong><span>14 days return</span></div></section>
+    </main>
+
+    <div class="lightbox" id="lightbox"><button type="button" id="closeBox">×</button><img id="lightboxImage" alt="Expanded product view" /></div>
+
+    <script>
+      const BASE = "/mg69-street-luxury/utility/";
+      const hero = BASE + "utility-campaign-hero.jpg";
+      const board = BASE + "utility-product-board.jpg";
+      const colors = [
+        { name: "Stone Grey", hex: "#918b80", filter: "saturate(.9) brightness(1.03)", image: hero },
+        { name: "Matte Black", hex: "#050505", filter: "grayscale(.35) contrast(1.25) brightness(.58)", image: hero },
+        { name: "Dark Olive", hex: "#4a3f25", filter: "sepia(.35) hue-rotate(15deg) saturate(.85) brightness(.72)", image: hero }
+      ];
+      const shots = [
+        { label: "Model Front", image: hero, position: "center", scale: 1 },
+        { label: "Model Back", image: board, position: "82% 50%", scale: 1.08 },
+        { label: "Left Side", image: hero, position: "40% 50%", scale: 1.08 },
+        { label: "Right Side", image: hero, position: "58% 50%", scale: 1.08 },
+        { label: "Jacket Front", image: board, position: "56% 52%", scale: 1.25 },
+        { label: "Jacket Back", image: board, position: "70% 52%", scale: 1.25 },
+        { label: "Cargo Front", image: board, position: "86% 58%", scale: 1.25 },
+        { label: "Fabric Detail", image: board, position: "57% 78%", scale: 1.45 }
+      ];
+      const sizes = ["S", "M", "L", "XL", "XXL"];
+      let activeColor = colors[0];
+      let qty = 1;
+
+      function renderColors() {
+        document.getElementById("colors").innerHTML = colors.map((color, index) => `<button class="color-btn ${index === colors.indexOf(activeColor) ? "active" : ""}" data-color="${index}" type="button"><span style="--swatch:${color.hex}"></span></button>`).join("");
+        document.getElementById("colorName").textContent = activeColor.name;
+      }
+
+      function renderSizes() {
+        document.getElementById("sizes").innerHTML = sizes.map((size, index) => `<button class="size-btn ${index === 1 ? "active" : ""}" type="button">${size}</button>`).join("");
+      }
+
+      function renderShots() {
+        document.getElementById("shots").innerHTML = shots.map((shot) => `<article class="shot-card"><button type="button" data-image="${shot.image}" aria-label="Open ${shot.label}"><img class="shot-img" src="${shot.image}" alt="MG69 Utility Set ${shot.label}" loading="lazy" style="--position:${shot.position}; --scale:${shot.scale}; --filter:${activeColor.filter};" /><span class="shot-label">${shot.label}</span></button></article>`).join("");
+      }
+
+      function renderVariants() {
+        document.getElementById("variants").innerHTML = colors.map((color, index) => `<article class="variant-card"><img src="${color.image}" alt="MG69 Utility Set ${color.name}" loading="lazy" style="--filter:${color.filter}; object-position:center;" /><span>${color.name}</span></article>`).join("");
+      }
+
+      function updateCartLabel() {
+        const cart = JSON.parse(localStorage.getItem("mg69-cart") || "[]");
+        const count = cart.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+        document.getElementById("cartCount").textContent = `Cart ${count}`;
+      }
+
+      document.addEventListener("click", (event) => {
+        const colorButton = event.target.closest("[data-color]");
+        if (colorButton) {
+          activeColor = colors[Number(colorButton.dataset.color)];
+          renderColors();
+          renderShots();
+        }
+
+        const shotButton = event.target.closest("[data-image]");
+        if (shotButton) {
+          document.getElementById("lightboxImage").src = shotButton.dataset.image;
+          document.getElementById("lightbox").classList.add("open");
+        }
+      });
+
+      document.getElementById("closeBox").addEventListener("click", () => document.getElementById("lightbox").classList.remove("open"));
+      document.getElementById("minus").addEventListener("click", () => { qty = Math.max(1, qty - 1); document.getElementById("qty").textContent = qty; });
+      document.getElementById("plus").addEventListener("click", () => { qty = Math.min(25, qty + 1); document.getElementById("qty").textContent = qty; });
+      document.getElementById("addCart").addEventListener("click", () => {
+        const cart = JSON.parse(localStorage.getItem("mg69-cart") || "[]");
+        cart.push({ cartId: `mg69-utility-set-${Date.now()}`, productId: "mg69-utility-set", name: "MG69 Utility Set", price: 189, color: activeColor.name, size: document.querySelector(".size-btn.active")?.textContent || "M", quantity: qty, image: hero });
+        localStorage.setItem("mg69-cart", JSON.stringify(cart));
+        document.getElementById("status").textContent = `${qty} MG69 Utility Set added to cart in ${activeColor.name}.`;
+        updateCartLabel();
+      });
+
+      renderColors();
+      renderSizes();
+      renderShots();
+      renderVariants();
+      updateCartLabel();
+    </script>
+  </body>
+</html>

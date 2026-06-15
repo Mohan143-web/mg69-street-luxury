@@ -29,12 +29,13 @@ import OrderConfirmed from "./pages/OrderConfirmed.jsx";
 const money = (value) => `$${value.toFixed(2)}`;
 const previewImage = `${import.meta.env.BASE_URL}og-preview.png`;
 const brandLogo = `${import.meta.env.BASE_URL}brand/mg69-logo3.png`;
-const campaignVersion = "v=campaign-2";
+const campaignVersion = "v=campaign-3";
+const campaignAsset = (fileName) => `${import.meta.env.BASE_URL}images/${fileName}?${campaignVersion}`;
 const campaignImages = {
-  hero: `${import.meta.env.BASE_URL}images/mg69-hero.jpg?${campaignVersion}`,
-  lookbook1: `${import.meta.env.BASE_URL}images/mg69-lookbook-1.jpg?${campaignVersion}`,
-  lookbook2: `${import.meta.env.BASE_URL}images/mg69-lookbook-2.jpg?${campaignVersion}`,
-  lookbook3: `${import.meta.env.BASE_URL}images/mg69-lookbook-3.jpg?${campaignVersion}`
+  hero: campaignAsset("mg69-poster-1.jpg"),
+  poster1: campaignAsset("mg69-poster-1.jpg"),
+  poster2: campaignAsset("mg69-poster-2.jpg"),
+  poster3: campaignAsset("mg69-poster-3.jpg")
 };
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const fallbackImage = products[0].image;
@@ -77,6 +78,29 @@ const adminLinks = [
   ["admin-analytics", "Analytics"],
   ["admin-shipping", "Shipping"],
   ["admin-settings", "Settings"]
+];
+const campaigns = [
+  {
+    image: campaignImages.poster1,
+    title: "MG 69 LUXURY",
+    subtitle: "Premium Streetwear Collection",
+    width: 1254,
+    height: 1254
+  },
+  {
+    image: campaignImages.poster2,
+    title: "DESIGNED FOR THE BOLD",
+    subtitle: "FW 24/25 Campaign",
+    width: 1086,
+    height: 1448
+  },
+  {
+    image: campaignImages.poster3,
+    title: "STREETWEAR ELEVATED",
+    subtitle: "Luxury Editorial Lookbook",
+    width: 1086,
+    height: 1448
+  }
 ];
 const campaignHighlights = [
   ["New Arrivals", "Designed for the Bold"],
@@ -989,30 +1013,6 @@ function CategoryNavigator({ activeCategory, activeCollection, onCategory, onCol
 }
 
 function StorySections() {
-  const lookbookVisuals = [
-    {
-      image: campaignImages.lookbook1,
-      poster: "Poster 1",
-      title: "FW 2026 Collection",
-      width: 1254,
-      height: 1254
-    },
-    {
-      image: campaignImages.lookbook2,
-      poster: "Poster 2",
-      title: "Urban Luxury Series",
-      width: 1086,
-      height: 1448
-    },
-    {
-      image: campaignImages.lookbook3,
-      poster: "Poster 3",
-      title: "MG69 Essentials",
-      width: 1086,
-      height: 1448
-    }
-  ];
-
   return (
     <>
       <section className="manifesto">
@@ -1027,27 +1027,7 @@ function StorySections() {
         </div>
       </section>
 
-      <section className="lookbook-section" id="lookbook">
-        <div className="section-heading">
-          <p className="eyebrow">Campaign Editorial</p>
-          <h2>LOOKBOOK</h2>
-        </div>
-        <div className="lookbook-grid">
-          {lookbookVisuals.map(({ height, image, poster, title, width }) => (
-            <motion.article
-              className="lookbook-card"
-              initial={{ opacity: 0, y: 30 }}
-              key={title}
-              viewport={{ once: true, margin: "-80px" }}
-              whileInView={{ opacity: 1, y: 0 }}
-            >
-              <img alt={`${title} MG69 lookbook poster`} src={image} loading="lazy" width={width} height={height} />
-              <span>{poster}</span>
-              <strong>{title}</strong>
-            </motion.article>
-          ))}
-        </div>
-      </section>
+      <CampaignSection />
 
       <section className="campaign-sections" aria-label="MG69 campaign sections">
         {campaignHighlights.map(([title, tagline]) => (
@@ -1065,6 +1045,43 @@ function StorySections() {
         </form>
       </section>
     </>
+  );
+}
+
+function CampaignSection() {
+  return (
+    <section className="editorial-campaigns" id="lookbook">
+      <div className="editorial-campaigns-inner">
+        <p className="editorial-kicker">MG 69 LUXURY</p>
+
+        <h2>Editorial Campaigns</h2>
+
+        <div className="editorial-campaign-grid">
+          {campaigns.map((item) => (
+            <motion.article
+              className="editorial-campaign-card"
+              initial={{ opacity: 0, y: 30 }}
+              key={item.title}
+              viewport={{ once: true, margin: "-80px" }}
+              whileInView={{ opacity: 1, y: 0 }}
+            >
+              <img
+                src={item.image}
+                alt={item.title}
+                loading="lazy"
+                width={item.width}
+                height={item.height}
+              />
+
+              <div>
+                <h3>{item.title}</h3>
+                <p>{item.subtitle}</p>
+              </div>
+            </motion.article>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }
 

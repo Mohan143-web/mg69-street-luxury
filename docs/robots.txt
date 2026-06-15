@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://mohan143-web.github.io/mg69-street-luxury/sitemap.xml

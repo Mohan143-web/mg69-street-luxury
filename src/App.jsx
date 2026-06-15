@@ -1113,6 +1113,13 @@ function Hero() {
                 image={utilityCampaignImages.hero}
                 loading="eager"
               />
+              <img
+                className="hero-logo-badge"
+                alt="MG69 gold logo"
+                src={brandLogo}
+                width="1254"
+                height="1254"
+              />
             </div>
           </motion.div>
           <motion.a

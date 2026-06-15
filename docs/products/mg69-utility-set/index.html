@@ -392,7 +392,7 @@
         <aside class="product-info">
           <p class="eyebrow">Home / Men / Drop 001</p>
           <h2>MG69 Utility Set</h2>
-          <span class="price">$189.00</span>
+          <span class="price">$169.00</span>
           <div class="stars">★★★★★ <span style="color:var(--muted); letter-spacing:.04em;">(128 reviews)</span></div>
           <p class="copy">Premium oversized utility bomber jacket, hoodie and cargo pants set. Built for comfort, confidence, and luxury streetwear styling.</p>
           <div class="feature-row"><span class="feature-pill">Premium Quality</span><span class="feature-pill">Limited Edition</span><span class="feature-pill">Oversized Fit</span><span class="feature-pill">Luxury Streetwear</span></div>
@@ -425,27 +425,42 @@
     <div class="lightbox" id="lightbox"><button type="button" id="closeBox">×</button><img id="lightboxImage" alt="Expanded product view" /></div>
 
     <script>
-      const BASE = "/mg69-street-luxury/utility/";
-      const hero = BASE + "utility-campaign-hero.jpg";
-      const board = BASE + "utility-product-board.jpg";
+      const BASE = "/mg69-street-luxury/utility/products/";
       const colors = [
-        { name: "Stone Grey", hex: "#918b80", filter: "saturate(.9) brightness(1.03)", image: hero },
-        { name: "Matte Black", hex: "#050505", filter: "grayscale(.35) contrast(1.25) brightness(.58)", image: hero },
-        { name: "Dark Olive", hex: "#4a3f25", filter: "sepia(.35) hue-rotate(15deg) saturate(.85) brightness(.72)", image: hero }
+        { name: "Stone Grey", slug: "stone-grey", hex: "#918b80" },
+        { name: "Matte Black", slug: "matte-black", hex: "#050505" },
+        { name: "Dark Olive", slug: "dark-olive", hex: "#4a3f25" }
       ];
       const shots = [
-        { label: "Model Front", image: hero, position: "center", scale: 1 },
-        { label: "Model Back", image: board, position: "82% 50%", scale: 1.08 },
-        { label: "Left Side", image: hero, position: "40% 50%", scale: 1.08 },
-        { label: "Right Side", image: hero, position: "58% 50%", scale: 1.08 },
-        { label: "Jacket Front", image: board, position: "56% 52%", scale: 1.25 },
-        { label: "Jacket Back", image: board, position: "70% 52%", scale: 1.25 },
-        { label: "Cargo Front", image: board, position: "86% 58%", scale: 1.25 },
-        { label: "Fabric Detail", image: board, position: "57% 78%", scale: 1.45 }
+        { label: "Front View", slug: "front-view" },
+        { label: "Back View", slug: "back-view" },
+        { label: "Left Side View", slug: "left-side-view" },
+        { label: "Right Side View", slug: "right-side-view" },
+        { label: "Model Front View", slug: "model-front-view" },
+        { label: "Model Back View", slug: "model-back-view" },
+        { label: "Flat Lay Front", slug: "flat-lay-front" },
+        { label: "Flat Lay Back", slug: "flat-lay-back" }
       ];
       const sizes = ["S", "M", "L", "XL", "XXL"];
       let activeColor = colors[0];
+      let activeShotIndex = 0;
       let qty = 1;
+      let touchStart = 0;
+
+      function imageFor(color, shot) {
+        return `${BASE}${color.slug}-${shot.slug}.webp`;
+      }
+
+      function openLightbox(index) {
+        activeShotIndex = index;
+        document.getElementById("lightboxImage").src = imageFor(activeColor, shots[activeShotIndex]);
+        document.getElementById("lightbox").classList.add("open");
+      }
+
+      function moveLightbox(direction) {
+        activeShotIndex = (activeShotIndex + direction + shots.length) % shots.length;
+        document.getElementById("lightboxImage").src = imageFor(activeColor, shots[activeShotIndex]);
+      }
 
       function renderColors() {
         document.getElementById("colors").innerHTML = colors.map((color, index) => `<button class="color-btn ${index === colors.indexOf(activeColor) ? "active" : ""}" data-color="${index}" type="button"><span style="--swatch:${color.hex}"></span></button>`).join("");
@@ -457,11 +472,11 @@
       }
 
       function renderShots() {
-        document.getElementById("shots").innerHTML = shots.map((shot) => `<article class="shot-card"><button type="button" data-image="${shot.image}" aria-label="Open ${shot.label}"><img class="shot-img" src="${shot.image}" alt="MG69 Utility Set ${shot.label}" loading="lazy" style="--position:${shot.position}; --scale:${shot.scale}; --filter:${activeColor.filter};" /><span class="shot-label">${shot.label}</span></button></article>`).join("");
+        document.getElementById("shots").innerHTML = shots.map((shot, index) => `<article class="shot-card"><button type="button" data-shot="${index}" aria-label="Open ${shot.label}"><img class="shot-img" src="${imageFor(activeColor, shot)}" alt="MG69 Utility Set ${shot.label}" loading="lazy" srcset="${imageFor(activeColor, shot)} 1200w" sizes="(max-width: 640px) 92vw, (max-width: 1080px) 48vw, 25vw" style="--position:center; --scale:1; --filter:none;" /><span class="shot-label">${shot.label}</span></button></article>`).join("");
       }
 
       function renderVariants() {
-        document.getElementById("variants").innerHTML = colors.map((color, index) => `<article class="variant-card"><img src="${color.image}" alt="MG69 Utility Set ${color.name}" loading="lazy" style="--filter:${color.filter}; object-position:center;" /><span>${color.name}</span></article>`).join("");
+        document.getElementById("variants").innerHTML = colors.map((color) => `<article class="variant-card"><img src="${imageFor(color, shots[0])}" alt="MG69 Utility Set ${color.name}" loading="lazy" srcset="${imageFor(color, shots[0])} 1200w" sizes="(max-width: 640px) 92vw, 33vw" style="--filter:none; object-position:center;" /><span>${color.name}</span></article>`).join("");
       }
 
       function updateCartLabel() {
@@ -478,19 +493,29 @@
           renderShots();
         }
 
-        const shotButton = event.target.closest("[data-image]");
+        const shotButton = event.target.closest("[data-shot]");
         if (shotButton) {
-          document.getElementById("lightboxImage").src = shotButton.dataset.image;
-          document.getElementById("lightbox").classList.add("open");
+          openLightbox(Number(shotButton.dataset.shot));
         }
       });
 
       document.getElementById("closeBox").addEventListener("click", () => document.getElementById("lightbox").classList.remove("open"));
+      document.getElementById("lightbox").addEventListener("touchstart", (event) => { touchStart = event.touches[0].clientX; });
+      document.getElementById("lightbox").addEventListener("touchend", (event) => {
+        const delta = event.changedTouches[0].clientX - touchStart;
+        if (Math.abs(delta) > 48) moveLightbox(delta > 0 ? -1 : 1);
+      });
+      document.addEventListener("keydown", (event) => {
+        if (!document.getElementById("lightbox").classList.contains("open")) return;
+        if (event.key === "ArrowLeft") moveLightbox(-1);
+        if (event.key === "ArrowRight") moveLightbox(1);
+        if (event.key === "Escape") document.getElementById("lightbox").classList.remove("open");
+      });
       document.getElementById("minus").addEventListener("click", () => { qty = Math.max(1, qty - 1); document.getElementById("qty").textContent = qty; });
       document.getElementById("plus").addEventListener("click", () => { qty = Math.min(25, qty + 1); document.getElementById("qty").textContent = qty; });
       document.getElementById("addCart").addEventListener("click", () => {
         const cart = JSON.parse(localStorage.getItem("mg69-cart") || "[]");
-        cart.push({ cartId: `mg69-utility-set-${Date.now()}`, productId: "mg69-utility-set", name: "MG69 Utility Set", price: 189, color: activeColor.name, size: document.querySelector(".size-btn.active")?.textContent || "M", quantity: qty, image: hero });
+        cart.push({ cartId: `mg69-utility-set-${Date.now()}`, productId: "mg69-utility-set", name: "MG69 Utility Set", price: 169, color: activeColor.name, size: document.querySelector(".size-btn.active")?.textContent || "M", quantity: qty, image: imageFor(activeColor, shots[0]) });
         localStorage.setItem("mg69-cart", JSON.stringify(cart));
         document.getElementById("status").textContent = `${qty} MG69 Utility Set added to cart in ${activeColor.name}.`;
         updateCartLabel();

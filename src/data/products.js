@@ -4,6 +4,7 @@ export const categories = ["All", "Men", "Women"];
 
 const productAsset = (fileName) => `${import.meta.env.BASE_URL}products/${fileName}`;
 const utilityAsset = (fileName) => `${import.meta.env.BASE_URL}utility/${fileName}`;
+const utilityProductAsset = (fileName) => `${import.meta.env.BASE_URL}utility/products/${fileName}`;
 const utilityResponsiveImage = (baseName, label, cropClass = "") => ({
   label,
   src: utilityAsset(`${baseName}.jpg`),
@@ -19,54 +20,66 @@ const luxurySetFront = productAsset("first-piece-front.png");
 const luxurySetBack = productAsset("first-piece-back.png");
 const utilitySizeStock = { S: 25, M: 25, L: 25, XL: 25, XXL: 25 };
 const utilityColors = [
-  { name: "Ash Grey", hex: "#918b80" },
+  { name: "Stone Grey", hex: "#918b80" },
   { name: "Matte Black", hex: "#050505" },
   { name: "Dark Olive", hex: "#4a3f25" }
 ];
-const utilityGalleryFor = (colorName, colorClass) => [
-  utilityResponsiveImage("utility-campaign-hero", "Front View", `${colorClass} utility-front`),
-  utilityResponsiveImage("utility-product-board", "Back View", `${colorClass} utility-back`),
-  utilityResponsiveImage("utility-campaign-hero", "Left Side View", `${colorClass} utility-left`),
-  utilityResponsiveImage("utility-campaign-hero", "Right Side View", `${colorClass} utility-right`),
-  utilityResponsiveImage("utility-campaign-hero", "Full Outfit View", `${colorClass} utility-full`),
-  utilityResponsiveImage("utility-product-board", "Fabric Close-Up", `${colorClass} utility-fabric`),
-  utilityResponsiveImage("utility-product-board", "Logo Detail", `${colorClass} utility-logo`),
-  utilityResponsiveImage("utility-product-board", "Pocket Detail", `${colorClass} utility-pocket`)
-].map((image) => ({ ...image, color: colorName }));
+const utilityViewLabels = [
+  ["front-view", "Front View"],
+  ["back-view", "Back View"],
+  ["left-side-view", "Left Side View"],
+  ["right-side-view", "Right Side View"],
+  ["model-front-view", "Model Front View"],
+  ["model-back-view", "Model Back View"],
+  ["flat-lay-front", "Flat Lay Front"],
+  ["flat-lay-back", "Flat Lay Back"]
+];
+const utilityProductImage = (colorSlug, colorName, viewSlug, label) => ({
+  label,
+  color: colorName,
+  src: utilityProductAsset(`${colorSlug}-${viewSlug}.webp`),
+  srcSet: `${utilityProductAsset(`${colorSlug}-${viewSlug}.webp`)} 1200w`,
+  sizes: "(max-width: 820px) 92vw, (max-width: 1180px) 64vw, 48vw",
+  width: 1200,
+  height: 1600
+});
+const utilityGalleryFor = (colorSlug, colorName) =>
+  utilityViewLabels.map(([viewSlug, label]) => utilityProductImage(colorSlug, colorName, viewSlug, label));
 const utilityColorVariants = [
   {
-    name: "Ash Grey",
+    name: "Stone Grey",
     hex: "#918b80",
     images: {
-      front: utilityResponsiveImage("utility-campaign-hero", "Ash Grey Front View", "utility-ash utility-front"),
-      back: utilityResponsiveImage("utility-product-board", "Ash Grey Back View", "utility-ash utility-back"),
-      side: utilityResponsiveImage("utility-campaign-hero", "Ash Grey Side View", "utility-ash utility-left")
+      front: utilityProductImage("stone-grey", "Stone Grey", "front-view", "Stone Grey Front View"),
+      back: utilityProductImage("stone-grey", "Stone Grey", "back-view", "Stone Grey Back View"),
+      side: utilityProductImage("stone-grey", "Stone Grey", "left-side-view", "Stone Grey Side View")
     },
-    gallery: utilityGalleryFor("Ash Grey", "utility-ash")
+    gallery: utilityGalleryFor("stone-grey", "Stone Grey")
   },
   {
     name: "Matte Black",
     hex: "#050505",
     images: {
-      front: utilityResponsiveImage("utility-campaign-hero", "Matte Black Front View", "utility-black utility-front"),
-      back: utilityResponsiveImage("utility-product-board", "Matte Black Back View", "utility-black utility-back"),
-      side: utilityResponsiveImage("utility-campaign-hero", "Matte Black Side View", "utility-black utility-side")
+      front: utilityProductImage("matte-black", "Matte Black", "front-view", "Matte Black Front View"),
+      back: utilityProductImage("matte-black", "Matte Black", "back-view", "Matte Black Back View"),
+      side: utilityProductImage("matte-black", "Matte Black", "left-side-view", "Matte Black Side View")
     },
-    gallery: utilityGalleryFor("Matte Black", "utility-black")
+    gallery: utilityGalleryFor("matte-black", "Matte Black")
   },
   {
     name: "Dark Olive",
     hex: "#4a3f25",
     images: {
-      front: utilityResponsiveImage("utility-campaign-hero", "Dark Olive Front View", "utility-olive utility-front"),
-      back: utilityResponsiveImage("utility-product-board", "Dark Olive Back View", "utility-olive utility-back"),
-      side: utilityResponsiveImage("utility-campaign-hero", "Dark Olive Side View", "utility-olive utility-side")
+      front: utilityProductImage("dark-olive", "Dark Olive", "front-view", "Dark Olive Front View"),
+      back: utilityProductImage("dark-olive", "Dark Olive", "back-view", "Dark Olive Back View"),
+      side: utilityProductImage("dark-olive", "Dark Olive", "left-side-view", "Dark Olive Side View")
     },
-    gallery: utilityGalleryFor("Dark Olive", "utility-olive")
+    gallery: utilityGalleryFor("dark-olive", "Dark Olive")
   }
 ];
 const utilityHeroImage = utilityResponsiveImage("utility-campaign-hero", "MG69 Utility campaign model", "utility-full");
 const utilityBoardImage = utilityResponsiveImage("utility-product-board", "MG69 Utility product board", "utility-board");
+const utilityDefaultGallery = utilityGalleryFor("stone-grey", "Stone Grey");
 
 export const utilityCampaignImages = {
   hero: utilityHeroImage,
@@ -85,8 +98,8 @@ export const products = [
     featured: true,
     sizeStock: utilitySizeStock,
     imageClass: "crop-utility",
-    image: utilityHeroImage.src,
-    images: utilityGalleryFor("Ash Grey", "utility-ash"),
+    image: utilityDefaultGallery[0].src,
+    images: utilityDefaultGallery,
     colorVariants: utilityColorVariants,
     tagline: "Premium bomber, oversized hoodie energy, and cargo utility discipline.",
     description:
@@ -111,8 +124,8 @@ export const products = [
     stock: 125,
     sizeStock: utilitySizeStock,
     imageClass: "crop-utility",
-    image: utilityBoardImage.src,
-    images: utilityGalleryFor("Ash Grey", "utility-ash"),
+    image: utilityDefaultGallery[6].src,
+    images: utilityDefaultGallery,
     colorVariants: utilityColorVariants,
     tagline: "Structured outer layer with a premium utility silhouette.",
     description: "A luxury utility bomber jacket built with an oversized shape, clean pocketing, and MG69 campaign styling.",
@@ -135,8 +148,8 @@ export const products = [
     stock: 125,
     sizeStock: utilitySizeStock,
     imageClass: "crop-utility",
-    image: utilityHeroImage.src,
-    images: utilityGalleryFor("Ash Grey", "utility-ash"),
+    image: utilityDefaultGallery[4].src,
+    images: utilityDefaultGallery,
     colorVariants: utilityColorVariants,
     tagline: "Layer-ready heavyweight hoodie for the Utility Collection.",
     description: "A soft oversized hoodie designed to sit under the MG69 bomber or carry the full utility look by itself.",
@@ -159,8 +172,8 @@ export const products = [
     stock: 125,
     sizeStock: utilitySizeStock,
     imageClass: "crop-utility",
-    image: utilityBoardImage.src,
-    images: utilityGalleryFor("Ash Grey", "utility-ash"),
+    image: utilityDefaultGallery[7].src,
+    images: utilityDefaultGallery,
     colorVariants: utilityColorVariants,
     tagline: "Relaxed utility cargo pants with premium pocket detail.",
     description: "A wide-leg utility cargo pant with clean pocket structure, adjustable waist detail, and luxury streetwear proportions.",

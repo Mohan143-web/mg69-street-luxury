@@ -1,14 +1,178 @@
-export const collections = ["All", "Drop 001", "Essentials", "Future Uniform"];
+export const collections = ["All", "MG69 Utility Collection", "Drop 001", "Essentials", "Future Uniform"];
 
 export const categories = ["All", "Men", "Women"];
 
 const productAsset = (fileName) => `${import.meta.env.BASE_URL}products/${fileName}`;
+const utilityAsset = (fileName) => `${import.meta.env.BASE_URL}utility/${fileName}`;
+const utilityResponsiveImage = (baseName, label, cropClass = "") => ({
+  label,
+  src: utilityAsset(`${baseName}.jpg`),
+  srcSet: `${utilityAsset(`${baseName}-768.jpg`)} 768w, ${utilityAsset(`${baseName}-1200.jpg`)} 1200w, ${utilityAsset(`${baseName}.jpg`)} 1536w`,
+  sizes: "(max-width: 820px) 92vw, (max-width: 1180px) 72vw, 50vw",
+  width: 1536,
+  height: 1024,
+  cropClass
+});
 const firstPieceFront = productAsset("first-piece-front.png");
 const firstPieceBack = productAsset("first-piece-back.png");
 const luxurySetFront = productAsset("first-piece-front.png");
 const luxurySetBack = productAsset("first-piece-back.png");
+const utilitySizeStock = { S: 25, M: 25, L: 25, XL: 25, XXL: 25 };
+const utilityColors = [
+  { name: "Ash Grey", hex: "#918b80" },
+  { name: "Matte Black", hex: "#050505" },
+  { name: "Dark Olive", hex: "#4a3f25" }
+];
+const utilityGalleryFor = (colorName, colorClass) => [
+  utilityResponsiveImage("utility-campaign-hero", "Front View", `${colorClass} utility-front`),
+  utilityResponsiveImage("utility-product-board", "Back View", `${colorClass} utility-back`),
+  utilityResponsiveImage("utility-campaign-hero", "Left Side View", `${colorClass} utility-left`),
+  utilityResponsiveImage("utility-campaign-hero", "Right Side View", `${colorClass} utility-right`),
+  utilityResponsiveImage("utility-campaign-hero", "Full Outfit View", `${colorClass} utility-full`),
+  utilityResponsiveImage("utility-product-board", "Fabric Close-Up", `${colorClass} utility-fabric`),
+  utilityResponsiveImage("utility-product-board", "Logo Detail", `${colorClass} utility-logo`),
+  utilityResponsiveImage("utility-product-board", "Pocket Detail", `${colorClass} utility-pocket`)
+].map((image) => ({ ...image, color: colorName }));
+const utilityColorVariants = [
+  {
+    name: "Ash Grey",
+    hex: "#918b80",
+    images: {
+      front: utilityResponsiveImage("utility-campaign-hero", "Ash Grey Front View", "utility-ash utility-front"),
+      back: utilityResponsiveImage("utility-product-board", "Ash Grey Back View", "utility-ash utility-back"),
+      side: utilityResponsiveImage("utility-campaign-hero", "Ash Grey Side View", "utility-ash utility-left")
+    },
+    gallery: utilityGalleryFor("Ash Grey", "utility-ash")
+  },
+  {
+    name: "Matte Black",
+    hex: "#050505",
+    images: {
+      front: utilityResponsiveImage("utility-campaign-hero", "Matte Black Front View", "utility-black utility-front"),
+      back: utilityResponsiveImage("utility-product-board", "Matte Black Back View", "utility-black utility-back"),
+      side: utilityResponsiveImage("utility-campaign-hero", "Matte Black Side View", "utility-black utility-side")
+    },
+    gallery: utilityGalleryFor("Matte Black", "utility-black")
+  },
+  {
+    name: "Dark Olive",
+    hex: "#4a3f25",
+    images: {
+      front: utilityResponsiveImage("utility-campaign-hero", "Dark Olive Front View", "utility-olive utility-front"),
+      back: utilityResponsiveImage("utility-product-board", "Dark Olive Back View", "utility-olive utility-back"),
+      side: utilityResponsiveImage("utility-campaign-hero", "Dark Olive Side View", "utility-olive utility-side")
+    },
+    gallery: utilityGalleryFor("Dark Olive", "utility-olive")
+  }
+];
+const utilityHeroImage = utilityResponsiveImage("utility-campaign-hero", "MG69 Utility campaign model", "utility-full");
+const utilityBoardImage = utilityResponsiveImage("utility-product-board", "MG69 Utility product board", "utility-board");
+
+export const utilityCampaignImages = {
+  hero: utilityHeroImage,
+  board: utilityBoardImage
+};
 
 export const products = [
+  {
+    id: "mg69-utility-set",
+    name: "MG69 Utility Set",
+    collection: "MG69 Utility Collection",
+    price: 169,
+    category: "Men",
+    type: "Utility Bomber + Cargo Set",
+    stock: 125,
+    featured: true,
+    sizeStock: utilitySizeStock,
+    imageClass: "crop-utility",
+    image: utilityHeroImage.src,
+    images: utilityGalleryFor("Ash Grey", "utility-ash"),
+    colorVariants: utilityColorVariants,
+    tagline: "Premium bomber, oversized hoodie energy, and cargo utility discipline.",
+    description:
+      "Premium oversized utility bomber jacket paired with cargo pants. Built for comfort, confidence, and luxury streetwear styling.",
+    sizes: ["S", "M", "L", "XL", "XXL"],
+    colors: utilityColors,
+    specs: {
+      Fabric: "Utility Shell / Heavy Fleece",
+      Inventory: "25 units per size",
+      Fit: "Oversized"
+    },
+    tags: ["MG69 Utility Collection", "Utility Bomber Jacket", "Cargo Pants", "Featured"],
+    relatedIds: ["mg69-utility-bomber-jacket", "mg69-utility-oversized-hoodie", "mg69-utility-cargo-pants"]
+  },
+  {
+    id: "mg69-utility-bomber-jacket",
+    name: "Utility Bomber Jacket",
+    collection: "MG69 Utility Collection",
+    price: 139,
+    category: "Men",
+    type: "Utility Bomber Jacket",
+    stock: 125,
+    sizeStock: utilitySizeStock,
+    imageClass: "crop-utility",
+    image: utilityBoardImage.src,
+    images: utilityGalleryFor("Ash Grey", "utility-ash"),
+    colorVariants: utilityColorVariants,
+    tagline: "Structured outer layer with a premium utility silhouette.",
+    description: "A luxury utility bomber jacket built with an oversized shape, clean pocketing, and MG69 campaign styling.",
+    sizes: ["S", "M", "L", "XL", "XXL"],
+    colors: utilityColors,
+    specs: {
+      Shell: "Premium Utility Twill",
+      Hardware: "Matte Metal",
+      Fit: "Oversized"
+    },
+    tags: ["MG69 Utility Collection", "Bomber", "Outerwear"]
+  },
+  {
+    id: "mg69-utility-oversized-hoodie",
+    name: "Oversized Hoodie",
+    collection: "MG69 Utility Collection",
+    price: 98,
+    category: "Men",
+    type: "Oversized Hoodie",
+    stock: 125,
+    sizeStock: utilitySizeStock,
+    imageClass: "crop-utility",
+    image: utilityHeroImage.src,
+    images: utilityGalleryFor("Ash Grey", "utility-ash"),
+    colorVariants: utilityColorVariants,
+    tagline: "Layer-ready heavyweight hoodie for the Utility Collection.",
+    description: "A soft oversized hoodie designed to sit under the MG69 bomber or carry the full utility look by itself.",
+    sizes: ["S", "M", "L", "XL", "XXL"],
+    colors: utilityColors,
+    specs: {
+      Fabric: "Heavyweight Fleece",
+      Hood: "Double Layer",
+      Fit: "Oversized"
+    },
+    tags: ["MG69 Utility Collection", "Hoodie", "Layering"]
+  },
+  {
+    id: "mg69-utility-cargo-pants",
+    name: "Cargo Pants",
+    collection: "MG69 Utility Collection",
+    price: 118,
+    category: "Men",
+    type: "Cargo Pants",
+    stock: 125,
+    sizeStock: utilitySizeStock,
+    imageClass: "crop-utility",
+    image: utilityBoardImage.src,
+    images: utilityGalleryFor("Ash Grey", "utility-ash"),
+    colorVariants: utilityColorVariants,
+    tagline: "Relaxed utility cargo pants with premium pocket detail.",
+    description: "A wide-leg utility cargo pant with clean pocket structure, adjustable waist detail, and luxury streetwear proportions.",
+    sizes: ["S", "M", "L", "XL", "XXL"],
+    colors: utilityColors,
+    specs: {
+      Fabric: "Utility Cotton Blend",
+      Pockets: "Multi Cargo",
+      Fit: "Relaxed"
+    },
+    tags: ["MG69 Utility Collection", "Cargo Pants", "Utility"]
+  },
   {
     id: "mg69-luxury-set",
     name: "MG69 Luxury Set",

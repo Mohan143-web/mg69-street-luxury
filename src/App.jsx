@@ -2,9 +2,13 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   BarChart3,
   Boxes,
+  ChevronLeft,
+  ChevronRight,
   ClipboardList,
+  Edit3,
   Heart,
   LayoutDashboard,
+  Maximize2,
   Menu,
   Minus,
   Package,
@@ -14,14 +18,16 @@ import {
   ShoppingBag,
   SlidersHorizontal,
   Tags,
+  Trash2,
   Truck,
+  Upload,
   Users,
   X,
   User
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { createCheckoutSession } from "./api/checkout.js";
-import { categories, collections, products } from "./data/products.js";
+import { categories, collections, products, utilityCampaignImages } from "./data/products.js";
 import { fetchProducts, hasApi, saveOrder } from "./lib/api.js";
 import { readStoredValue, writeStoredValue } from "./lib/storage.js";
 import OrderConfirmed from "./pages/OrderConfirmed.jsx";
@@ -137,8 +143,36 @@ function getStockLabel(count) {
   return `${count} left`;
 }
 
-function getImageSize(src = "") {
+function getImageSrc(image = "") {
+  return typeof image === "string" ? image : image.src;
+}
+
+function getImageSize(image = "") {
+  const src = getImageSrc(image) || "";
+  if (typeof image === "object" && image.width && image.height) {
+    return { width: image.width, height: image.height };
+  }
+  if (src.includes("utility-")) return { width: 1536, height: 1024 };
   return src.includes("first-piece") ? { width: 1086, height: 1448 } : { width: 627, height: 627 };
+}
+
+function ProductImage({ image, alt, className = "", fetchPriority, loading = "lazy", sizes }) {
+  const imageData = typeof image === "string" ? { src: image } : image;
+  const dimensions = getImageSize(imageData);
+
+  return (
+    <img
+      alt={alt}
+      className={`${className} ${imageData.cropClass || ""}`.trim()}
+      fetchPriority={fetchPriority}
+      height={dimensions.height}
+      loading={loading}
+      sizes={sizes || imageData.sizes}
+      src={imageData.src}
+      srcSet={imageData.srcSet}
+      width={dimensions.width}
+    />
+  );
 }
 
 function normalizeProduct(product) {
@@ -186,6 +220,7 @@ function App() {
   const [wishlist, setWishlist] = usePersistentState("mg69-wishlist", []);
   const [lastOrder, setLastOrder] = usePersistentState("mg69-last-order", null);
   const [appMode, setAppMode] = usePersistentState("mg69-app-mode", "customer");
+  const [recentlyViewed, setRecentlyViewed] = usePersistentState("mg69-recently-viewed", []);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [orderMessage, setOrderMessage] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -197,6 +232,31 @@ function App() {
   const wishlistProducts = useMemo(
     () => catalog.filter((product) => wishlist.includes(product.id)),
     [catalog, wishlist]
+  );
+  const relatedProducts = useMemo(() => {
+    const explicitRelated = selectedProduct.relatedIds?.length
+      ? selectedProduct.relatedIds
+          .map((id) => catalog.find((product) => product.id === id))
+          .filter(Boolean)
+      : [];
+    const collectionRelated = catalog.filter(
+      (product) =>
+        product.id !== selectedProduct.id &&
+        (product.collection === selectedProduct.collection || product.category === selectedProduct.category)
+    );
+
+    return [...explicitRelated, ...collectionRelated]
+      .filter((product, index, array) => array.findIndex((item) => item.id === product.id) === index)
+      .slice(0, 4);
+  }, [catalog, selectedProduct]);
+  const recentlyViewedProducts = useMemo(
+    () =>
+      recentlyViewed
+        .filter((id) => id !== selectedProduct.id)
+        .map((id) => catalog.find((product) => product.id === id))
+        .filter(Boolean)
+        .slice(0, 4),
+    [catalog, recentlyViewed, selectedProduct.id]
   );
 
   const filteredProducts = useMemo(() => {
@@ -297,6 +357,10 @@ function App() {
   }, [selectedProduct.id]);
 
   useEffect(() => {
+    setRecentlyViewed((current) => [selectedProduct.id, ...current.filter((id) => id !== selectedProduct.id)].slice(0, 6));
+  }, [selectedProduct.id, setRecentlyViewed]);
+
+  useEffect(() => {
     setSelectedQuantity((quantity) => Math.min(Math.max(1, quantity), Math.max(1, selectedSizeStock)));
   }, [selectedSizeStock]);
 
@@ -344,6 +408,94 @@ function App() {
 
   function addToCart() {
     addProductToCart(selectedProduct, selectedSize, selectedColor, selectedQuantity);
+  }
+
+  function buyNow() {
+    addToCart();
+    window.location.hash = "checkout";
+    window.requestAnimationFrame(() => {
+      document.getElementById("checkout")?.scrollIntoView({ block: "start" });
+    });
+  }
+
+  function addAdminProduct() {
+    const template = catalog.find((product) => product.id === "mg69-utility-set") || catalog[0];
+    const id = `mg69-admin-product-${Date.now()}`;
+
+    setCatalog((current) => [
+      normalizeProduct({
+        ...template,
+        id,
+        name: "New MG69 Utility Product",
+        price: 169,
+        stock: 125,
+        sizeStock: { S: 25, M: 25, L: 25, XL: 25, XXL: 25 },
+        tags: [...(template.tags || []), "Admin Added"]
+      }),
+      ...current
+    ]);
+    setSelectedProductId(id);
+  }
+
+  function editAdminProduct(productId, updates) {
+    setCatalog((current) =>
+      current.map((product) =>
+        product.id === productId
+          ? normalizeProduct({
+              ...product,
+              ...updates,
+              price: Number(updates.price ?? product.price),
+              stock: Number(updates.stock ?? product.stock)
+            })
+          : product
+      )
+    );
+  }
+
+  function deleteAdminProduct(productId) {
+    setCatalog((current) => {
+      if (current.length <= 1) return current;
+      const nextProducts = current.filter((product) => product.id !== productId);
+      if (selectedProductId === productId && nextProducts[0]) {
+        setSelectedProductId(nextProducts[0].id);
+      }
+      return nextProducts;
+    });
+  }
+
+  function updateAdminStock(productId, size, delta) {
+    setCatalog((current) =>
+      current.map((product) => {
+        if (product.id !== productId) return product;
+        const nextSizeStock = {
+          ...product.sizeStock,
+          [size]: Math.max(0, Number(product.sizeStock?.[size] || 0) + delta)
+        };
+
+        return {
+          ...product,
+          sizeStock: nextSizeStock,
+          stock: Object.values(nextSizeStock).reduce((sum, count) => sum + Number(count || 0), 0)
+        };
+      })
+    );
+  }
+
+  function uploadAdminImage(productId, file) {
+    if (!file) return;
+    const imageUrl = URL.createObjectURL(file);
+
+    setCatalog((current) =>
+      current.map((product) =>
+        product.id === productId
+          ? {
+              ...product,
+              image: imageUrl,
+              images: [{ label: "Uploaded Image", src: imageUrl }, ...(product.images || [])]
+            }
+          : product
+      )
+    );
   }
 
   function updateQuantity(cartId, delta) {
@@ -491,10 +643,14 @@ function App() {
               checkoutLoading={checkoutLoading}
               subtotal={subtotal}
               orderMessage={orderMessage}
+              recentlyViewed={recentlyViewedProducts}
+              relatedProducts={relatedProducts}
               onSize={setSelectedSize}
               onColor={setSelectedColor}
               onPurchaseQuantity={setSelectedQuantity}
               onAdd={addToCart}
+              onBuyNow={buyNow}
+              onSelect={selectProduct}
               onQuantity={updateQuantity}
               onCheckout={handleCheckout}
               wishlist={wishlist}
@@ -511,6 +667,11 @@ function App() {
               catalogStatus={catalogStatus}
               inventoryCount={inventoryCount}
               lastOrder={lastOrder}
+              onAddProduct={addAdminProduct}
+              onDeleteProduct={deleteAdminProduct}
+              onEditProduct={editAdminProduct}
+              onStock={updateAdminStock}
+              onUploadImage={uploadAdminImage}
               products={catalog}
               subtotal={subtotal}
               wishlistCount={wishlist.length}
@@ -828,13 +989,12 @@ function Hero() {
       onPointerMove={handlePointerMove}
       style={heroPointerStyle}
     >
-      <img
-        className="hero-campaign-poster"
-        alt="MG69 Luxury campaign poster"
-        fetchpriority="high"
-        src={campaignImages.hero}
-        width="1254"
-        height="1254"
+      <ProductImage
+        className="hero-campaign-poster utility-hero-poster"
+        alt="MG69 Utility Collection campaign model"
+        fetchPriority="high"
+        image={utilityCampaignImages.hero}
+        loading="eager"
       />
       <div className="hero-poster-shade" aria-hidden="true" />
       <div className="hero-cream-field" aria-hidden="true" />
@@ -863,10 +1023,10 @@ function Hero() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.56, duration: 0.58, ease: "easeOut" }}
           >
-            MG69 / Luxury Collection
+            MG69 / Utility Collection
           </motion.p>
           <h1>
-            <span>MG69 Luxury</span>
+            <span>MG69 Utility</span>
             <span>Premium Streetwear Collection</span>
           </h1>
           <motion.p
@@ -875,7 +1035,7 @@ function Hero() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.72, duration: 0.58, ease: "easeOut" }}
           >
-            Designed for the bold. Luxury in every detail. Streetwear elevated.
+            Premium oversized utility pieces built for comfort, confidence, and luxury streetwear styling.
           </motion.p>
           <motion.div
             className="hero-actions"
@@ -904,13 +1064,13 @@ function Hero() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1.2, duration: 0.55, ease: "easeOut" }}
           >
-            <img
+            <ProductImage
               alt={`${products[0].name} featured product`}
-              fetchpriority="high"
-              src={products[0].image}
-              {...getImageSize(products[0].image)}
+              fetchPriority="high"
+              image={products[0].images?.[0] || products[0].image}
+              loading="eager"
             />
-            <span>MG69 Signature Piece</span>
+            <span>MG69 Utility Collection</span>
             <strong>{products[0].name}</strong>
           </motion.a>
         </motion.div>
@@ -925,7 +1085,7 @@ function Hero() {
             animate={{ y: [0, -8, 0], rotate: [0, 0.35, 0] }}
             transition={{ duration: 7.5, ease: "easeInOut", repeat: Infinity }}
           >
-            <div className="logo-stage">
+            <div className="logo-stage campaign-model-stage">
               <div className="logo-smoke" aria-hidden="true" />
               <div className="logo-aura" aria-hidden="true" />
               <div className="logo-glass-reflection" aria-hidden="true" />
@@ -946,13 +1106,12 @@ function Hero() {
                   />
                 ))}
               </div>
-              <img
-                className="hero-logo"
-                alt="MG69 Street Luxury Redefined gold crest logo"
-                fetchpriority="high"
-                src={brandLogo}
-                width="1254"
-                height="1254"
+              <ProductImage
+                className="hero-logo hero-model-visual"
+                alt="MG69 Utility Collection campaign model"
+                fetchPriority="high"
+                image={utilityCampaignImages.hero}
+                loading="eager"
               />
             </div>
           </motion.div>
@@ -962,13 +1121,13 @@ function Hero() {
             animate={{ y: [0, -12, 0], x: [0, 5, 0] }}
             transition={{ duration: 6.8, ease: "easeInOut", repeat: Infinity }}
           >
-            <img
+            <ProductImage
               alt={`${products[0].name} floating product preview`}
-              fetchpriority="high"
-              src={products[0].image}
-              {...getImageSize(products[0].image)}
+              fetchPriority="high"
+              image={products[0].images?.[0] || products[0].image}
+              loading="eager"
             />
-            <span>First Piece</span>
+            <span>Utility Set</span>
             <strong>{money(products[0].price)}</strong>
             <small>
               <i>M</i>
@@ -1034,6 +1193,7 @@ function CategoryNavigator({ activeCategory, activeCollection, onCategory, onCol
 
 function MensCollectionLanding({ products, onAdd, onSelect }) {
   const featuredProduct =
+    products.find((product) => product.id === "mg69-utility-set") ||
     products.find((product) => product.id === "mg69-luxury-set") ||
     products.find((product) => product.category === "Men") ||
     products[0];
@@ -1049,8 +1209,8 @@ function MensCollectionLanding({ products, onAdd, onSelect }) {
   if (!featuredProduct) return null;
 
   const featuredColor = featuredProduct.colors?.[0]?.name || "Matte Black";
-  const frontImage = featuredImages[0]?.src || featuredProduct.image;
-  const backImage = featuredImages[1]?.src || frontImage;
+  const frontImage = featuredImages[0] || featuredProduct.image;
+  const backImage = featuredImages[1] || frontImage;
 
   return (
     <section className="mens-collection" id="men">
@@ -1078,7 +1238,7 @@ function MensCollectionLanding({ products, onAdd, onSelect }) {
         <div className="men-arrivals-grid">
           {menProducts.map((product) => (
             <button className="men-arrival-card" key={product.id} onClick={() => onSelect(product)} type="button">
-              <img alt={`${product.name} new arrival`} src={product.image} loading="lazy" {...getImageSize(product.image)} />
+              <ProductImage alt={`${product.name} new arrival`} image={product.images?.[0] || product.image} />
               <span>{product.collection}</span>
               <strong>{product.name}</strong>
             </button>
@@ -1089,11 +1249,11 @@ function MensCollectionLanding({ products, onAdd, onSelect }) {
       <div className="men-featured-product">
         <div className="men-product-gallery">
           <article>
-            <img alt={`${featuredProduct.name} front view`} src={frontImage} loading="lazy" {...getImageSize(frontImage)} />
+            <ProductImage alt={`${featuredProduct.name} front view`} image={frontImage} />
             <span>Front View</span>
           </article>
           <article>
-            <img alt={`${featuredProduct.name} back view`} src={backImage} loading="lazy" {...getImageSize(backImage)} />
+            <ProductImage alt={`${featuredProduct.name} back view`} image={backImage} />
             <span>Back View</span>
           </article>
         </div>
@@ -1220,17 +1380,14 @@ function Shop({ isLoading, products, searchQuery, selectedProductId, wishlist, o
   return (
     <section className="shop-section" id="shop">
       <div className="collection-campaign-banner">
-        <img
-          alt="MG69 Luxury collection banner"
-          src={campaignImages.hero}
-          loading="lazy"
-          width="1254"
-          height="1254"
+        <ProductImage
+          alt="MG69 Utility Collection banner"
+          image={utilityCampaignImages.board}
         />
         <div>
-          <p className="eyebrow">MG69 Luxury</p>
+          <p className="eyebrow">MG69 Utility Collection</p>
           <h2>Designed for the Bold.</h2>
-          <p>Premium Streetwear Collection.</p>
+          <p>Premium utility streetwear collection.</p>
         </div>
       </div>
       <div className="section-heading">
@@ -1283,8 +1440,6 @@ function ProductSkeletons() {
 }
 
 function ProductCard({ product, isSelected, isWishlisted, onSelect, onWishlist }) {
-  const imageSize = getImageSize(product.image);
-
   return (
     <motion.article
       className={`product-card ${isSelected ? "selected" : ""}`}
@@ -1294,7 +1449,7 @@ function ProductCard({ product, isSelected, isWishlisted, onSelect, onWishlist }
       exit={{ opacity: 0, scale: 0.96 }}
     >
       <button className="product-thumb" onClick={onSelect} type="button">
-        <img alt={`${product.name} front product shot`} src={product.image} loading="lazy" {...imageSize} />
+        <ProductImage alt={`${product.name} front product shot`} image={product.images?.[0] || product.image} />
       </button>
       <button className={`wish-button ${isWishlisted ? "active" : ""}`} onClick={onWishlist} type="button">
         <Heart size={18} />
@@ -1323,51 +1478,62 @@ function ProductStudio({
   checkoutLoading,
   subtotal,
   orderMessage,
+  recentlyViewed,
+  relatedProducts,
   onSize,
   onColor,
   onPurchaseQuantity,
   onAdd,
+  onBuyNow,
+  onSelect,
   onQuantity,
   onCheckout,
   wishlist,
   onWishlist
 }) {
-  const gallery = product.images?.length ? product.images : [{ label: "Front", src: product.image }];
-  const [activeImage, setActiveImage] = useState(gallery[0].src);
+  const selectedVariant = product.colorVariants?.find((variant) => variant.name === selectedColor);
+  const gallery = selectedVariant?.gallery?.length
+    ? selectedVariant.gallery
+    : product.images?.length
+      ? product.images
+      : [{ label: "Front", src: product.image }];
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const activeImage = gallery[activeIndex] || gallery[0];
 
   useEffect(() => {
-    setActiveImage(gallery[0].src);
-  }, [product.id]);
+    setActiveIndex(0);
+  }, [product.id, selectedColor]);
 
   return (
     <section className="product-studio" id="product">
       <div className="detail-panel">
         <div className="detail-image-wrap">
-          <div className="detail-image">
-            <img
-              alt={`${product.name} ${gallery.find((image) => image.src === activeImage)?.label || "product"} view`}
-              src={activeImage}
-              loading="lazy"
-              {...getImageSize(activeImage)}
+          <button className="detail-image" onClick={() => setIsLightboxOpen(true)} type="button">
+            <ProductImage
+              alt={`${product.name} ${activeImage?.label || "product"} view`}
+              image={activeImage}
             />
-          </div>
+            <span className="zoom-cue"><Maximize2 size={16} /> Zoom / lightbox</span>
+          </button>
           <button
             className={`icon-button favorite-floating ${wishlist.includes(product.id) ? "active" : ""}`}
             onClick={() => onWishlist(product.id)}
             type="button"
+            aria-label={wishlist.includes(product.id) ? "Remove from wishlist" : "Add to wishlist"}
           >
             <Heart />
           </button>
         </div>
         <div className="product-gallery" aria-label={`${product.name} gallery`}>
-          {gallery.map((image) => (
+          {gallery.map((image, index) => (
             <button
-              className={activeImage === image.src ? "active" : ""}
-              key={image.src}
-              onClick={() => setActiveImage(image.src)}
+              className={activeIndex === index ? "active" : ""}
+              key={`${image.label}-${image.color || "base"}-${index}`}
+              onClick={() => setActiveIndex(index)}
               type="button"
             >
-              <img alt={`${product.name} ${image.label} thumbnail`} src={image.src} loading="lazy" {...getImageSize(image.src)} />
+              <ProductImage alt={`${product.name} ${image.label} thumbnail`} image={image} />
               <span>{image.label}</span>
             </button>
           ))}
@@ -1403,9 +1569,22 @@ function ProductStudio({
             onSize={onSize}
           />
 
-          <button className="primary-command full" disabled={selectedSizeStock <= 0} onClick={onAdd} type="button">
-            {selectedSizeStock <= 0 ? "Sold out" : `Add ${selectedQuantity} to cart`}
-          </button>
+          <div className="product-action-row">
+            <button className="primary-command full" disabled={selectedSizeStock <= 0} onClick={onAdd} type="button">
+              {selectedSizeStock <= 0 ? "Sold out" : `Add ${selectedQuantity} to cart`}
+            </button>
+            <button className="secondary-command buy-now-command" disabled={selectedSizeStock <= 0} onClick={onBuyNow} type="button">
+              Buy Now
+            </button>
+            <button
+              className={`icon-button wishlist-command ${wishlist.includes(product.id) ? "active" : ""}`}
+              onClick={() => onWishlist(product.id)}
+              type="button"
+              aria-label={wishlist.includes(product.id) ? "Remove from wishlist" : "Add to wishlist"}
+            >
+              <Heart />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1417,7 +1596,138 @@ function ProductStudio({
         onCheckout={onCheckout}
         onQuantity={onQuantity}
       />
+      <ProductRails relatedProducts={relatedProducts} recentlyViewed={recentlyViewed} onSelect={onSelect} />
+      <GalleryLightbox
+        activeIndex={activeIndex}
+        gallery={gallery}
+        isOpen={isLightboxOpen}
+        productName={product.name}
+        onClose={() => setIsLightboxOpen(false)}
+        onIndex={setActiveIndex}
+      />
     </section>
+  );
+}
+
+function ProductRails({ relatedProducts, recentlyViewed, onSelect }) {
+  return (
+    <div className="product-rails">
+      <ProductRail title="Related Products" products={relatedProducts} onSelect={onSelect} />
+      <ProductRail title="Recently Viewed" products={recentlyViewed} onSelect={onSelect} />
+    </div>
+  );
+}
+
+function ProductRail({ title, products, onSelect }) {
+  if (!products?.length) return null;
+
+  return (
+    <section className="mini-product-rail" aria-label={title}>
+      <div className="rail-heading">
+        <p className="eyebrow">{title}</p>
+        <span>{products.length} pieces</span>
+      </div>
+      <div className="mini-product-grid">
+        {products.map((product) => (
+          <button className="mini-product-card" key={product.id} onClick={() => onSelect(product)} type="button">
+            <ProductImage alt={`${product.name} preview`} image={product.images?.[0] || product.image} />
+            <span>{product.collection}</span>
+            <strong>{product.name}</strong>
+            <small>{money(product.price)}</small>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function GalleryLightbox({ activeIndex, gallery, isOpen, productName, onClose, onIndex }) {
+  const [touchStart, setTouchStart] = useState(null);
+  const [isZoomed, setIsZoomed] = useState(false);
+  const activeImage = gallery[activeIndex] || gallery[0];
+
+  function move(delta) {
+    onIndex((activeIndex + delta + gallery.length) % gallery.length);
+  }
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+
+    setIsZoomed(false);
+
+    function handleKey(event) {
+      if (event.key === "Escape") onClose();
+      if (event.key === "ArrowLeft") move(-1);
+      if (event.key === "ArrowRight") move(1);
+    }
+
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [activeIndex, gallery.length, isOpen, onClose]);
+
+  if (!activeImage) return null;
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div className="lightbox-shell" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+          <button className="lightbox-backdrop" onClick={onClose} type="button" aria-label="Close product preview" />
+          <motion.div
+            className="lightbox-panel"
+            initial={{ opacity: 0, scale: 0.96, y: 24 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.96, y: 24 }}
+            transition={{ duration: 0.24, ease: "easeOut" }}
+          >
+            <div className="lightbox-topbar">
+              <div>
+                <span>{activeImage.label}</span>
+                <strong>{productName}</strong>
+              </div>
+              <button className="icon-button" onClick={onClose} type="button" aria-label="Close lightbox">
+                <X />
+              </button>
+            </div>
+            <figure
+              className={isZoomed ? "zoomed" : ""}
+              onTouchEnd={(event) => {
+                if (touchStart === null) return;
+                const delta = event.changedTouches[0].clientX - touchStart;
+                if (Math.abs(delta) > 42) move(delta > 0 ? -1 : 1);
+                setTouchStart(null);
+              }}
+              onTouchStart={(event) => setTouchStart(event.touches[0].clientX)}
+            >
+              <ProductImage
+                alt={`${productName} ${activeImage.label} enlarged preview`}
+                image={activeImage}
+                loading="eager"
+                sizes="100vw"
+              />
+            </figure>
+            <div className="lightbox-controls">
+              <button onClick={() => move(-1)} type="button"><ChevronLeft size={18} /> Previous</button>
+              <button onClick={() => setIsZoomed((value) => !value)} type="button">
+                <Maximize2 size={18} /> {isZoomed ? "Fit" : "Zoom"}
+              </button>
+              <button onClick={() => move(1)} type="button">Next <ChevronRight size={18} /></button>
+            </div>
+            <div className="lightbox-thumbs">
+              {gallery.map((image, index) => (
+                <button
+                  className={index === activeIndex ? "active" : ""}
+                  key={`${image.label}-${image.color || "base"}-${index}`}
+                  onClick={() => onIndex(index)}
+                  type="button"
+                >
+                  <ProductImage alt={`${productName} ${image.label} thumbnail`} image={image} />
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
@@ -1533,7 +1843,7 @@ function CartPanel({ cart, checkoutLoading, subtotal, orderMessage, onQuantity, 
             <article className="bag-line" key={item.cartId}>
               <div className={`bag-line-image ${item.image ? "" : `image-crop ${item.imageClass || ""}`}`}>
                 {item.image && (
-                  <img alt={`${item.name} cart preview`} src={item.image} loading="lazy" {...getImageSize(item.image)} />
+                  <ProductImage alt={`${item.name} cart preview`} image={item.image} />
                 )}
               </div>
               <div>
@@ -1612,7 +1922,7 @@ function WishlistPanel({ products, onSelect, onWishlist }) {
               viewport={{ once: true }}
             >
               <button className="wishlist-image" onClick={() => onSelect(product)} type="button">
-                <img alt={`${product.name} wishlist preview`} src={product.image} loading="lazy" {...getImageSize(product.image)} />
+                <ProductImage alt={`${product.name} wishlist preview`} image={product.images?.[0] || product.image} />
               </button>
               <div>
                 <span>{product.collection}</span>
@@ -1684,7 +1994,22 @@ function OrderTracking({ cart, order }) {
   );
 }
 
-function AdminPanel({ cart, catalogStatus, inventoryCount, lastOrder, products, subtotal, wishlistCount }) {
+function AdminPanel({
+  cart,
+  catalogStatus,
+  inventoryCount,
+  lastOrder,
+  onAddProduct,
+  onDeleteProduct,
+  onEditProduct,
+  onStock,
+  onUploadImage,
+  products,
+  subtotal,
+  wishlistCount
+}) {
+  const [selectedAdminId, setSelectedAdminId] = useState(products[0]?.id || "");
+  const selectedAdminProduct = products.find((product) => product.id === selectedAdminId) || products[0];
   const modules = [
     {
       id: "admin-dashboard",
@@ -1751,6 +2076,12 @@ function AdminPanel({ cart, catalogStatus, inventoryCount, lastOrder, products, 
     }
   ];
 
+  useEffect(() => {
+    if (!products.some((product) => product.id === selectedAdminId)) {
+      setSelectedAdminId(products[0]?.id || "");
+    }
+  }, [products, selectedAdminId]);
+
   return (
     <section className="admin-section" id="admin">
       <div className="section-heading">
@@ -1768,6 +2099,130 @@ function AdminPanel({ cart, catalogStatus, inventoryCount, lastOrder, products, 
           </article>
         ))}
       </div>
+
+      {selectedAdminProduct && (
+        <div className="admin-inventory-dashboard" id="admin-inventory">
+          <div className="admin-inventory-sidebar">
+            <div className="admin-inventory-heading">
+              <div>
+                <p className="eyebrow">Inventory system</p>
+                <h3>Manage Stock</h3>
+              </div>
+              <button className="primary-command compact" onClick={onAddProduct} type="button">
+                <Plus size={16} /> Add Product
+              </button>
+            </div>
+            <div className="admin-product-list" aria-label="Admin product selector">
+              {products.map((product) => (
+                <button
+                  className={product.id === selectedAdminProduct.id ? "active" : ""}
+                  key={product.id}
+                  onClick={() => setSelectedAdminId(product.id)}
+                  type="button"
+                >
+                  <ProductImage alt={`${product.name} admin thumbnail`} image={product.images?.[0] || product.image} />
+                  <span>{product.collection}</span>
+                  <strong>{product.name}</strong>
+                  <small>{getStockLabel(product.stock)}</small>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="admin-product-editor" id="admin-products">
+            <div className="admin-editor-preview">
+              <ProductImage alt={`${selectedAdminProduct.name} admin preview`} image={selectedAdminProduct.images?.[0] || selectedAdminProduct.image} />
+            </div>
+            <div className="admin-editor-fields">
+              <div className="admin-editor-title">
+                <div>
+                  <p className="eyebrow">Edit Product</p>
+                  <h3>{selectedAdminProduct.name}</h3>
+                </div>
+                <button
+                  className="delete-product-button"
+                  disabled={products.length <= 1}
+                  onClick={() => onDeleteProduct(selectedAdminProduct.id)}
+                  type="button"
+                >
+                  <Trash2 size={16} /> Delete Product
+                </button>
+              </div>
+
+              <div className="admin-field-grid">
+                <label>
+                  <span>Product name</span>
+                  <input
+                    defaultValue={selectedAdminProduct.name}
+                    onBlur={(event) => onEditProduct(selectedAdminProduct.id, { name: event.target.value })}
+                  />
+                </label>
+                <label>
+                  <span>Price</span>
+                  <input
+                    defaultValue={selectedAdminProduct.price}
+                    min="0"
+                    onBlur={(event) => onEditProduct(selectedAdminProduct.id, { price: event.target.value })}
+                    type="number"
+                  />
+                </label>
+                <label>
+                  <span>Total stock</span>
+                  <input
+                    defaultValue={selectedAdminProduct.stock}
+                    min="0"
+                    onBlur={(event) => onEditProduct(selectedAdminProduct.id, { stock: event.target.value })}
+                    type="number"
+                  />
+                </label>
+                <label>
+                  <span>Collection</span>
+                  <input
+                    defaultValue={selectedAdminProduct.collection}
+                    onBlur={(event) => onEditProduct(selectedAdminProduct.id, { collection: event.target.value })}
+                  />
+                </label>
+              </div>
+
+              <label className="admin-upload-control">
+                <Upload size={18} />
+                <span>Upload Images</span>
+                <input
+                  accept="image/*"
+                  onChange={(event) => onUploadImage(selectedAdminProduct.id, event.target.files?.[0])}
+                  type="file"
+                />
+              </label>
+
+              <div className="admin-size-stock">
+                {selectedAdminProduct.sizes.map((size) => (
+                  <article key={size}>
+                    <span>{size}</span>
+                    <strong>{Number(selectedAdminProduct.sizeStock?.[size] ?? selectedAdminProduct.stock ?? 0)}</strong>
+                    <div>
+                      <button onClick={() => onStock(selectedAdminProduct.id, size, -1)} type="button"><Minus size={14} /></button>
+                      <button onClick={() => onStock(selectedAdminProduct.id, size, 1)} type="button"><Plus size={14} /></button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+
+              <div className="admin-orders-panel" id="admin-orders">
+                <div>
+                  <p className="eyebrow">View Orders</p>
+                  <h3>{lastOrder ? lastOrder.orderNumber : "No orders yet"}</h3>
+                </div>
+                <p>
+                  {lastOrder
+                    ? `${lastOrder.customerName} / ${money(lastOrder.total)} / ${lastOrder.items.length} items`
+                    : "Checkout drafts and Stripe paid orders will appear here once customers buy."}
+                </p>
+                <a className="secondary-command" href="#orders">Open Order Tracking</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

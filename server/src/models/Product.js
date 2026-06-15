@@ -21,7 +21,63 @@ const productSchema = new mongoose.Schema(
     images: [
       {
         label: String,
-        src: String
+        src: String,
+        srcSet: String,
+        sizes: String,
+        width: Number,
+        height: Number,
+        cropClass: String,
+        color: String
+      }
+    ],
+    colorVariants: [
+      {
+        name: String,
+        hex: String,
+        images: {
+          front: {
+            label: String,
+            src: String,
+            srcSet: String,
+            sizes: String,
+            width: Number,
+            height: Number,
+            cropClass: String,
+            color: String
+          },
+          back: {
+            label: String,
+            src: String,
+            srcSet: String,
+            sizes: String,
+            width: Number,
+            height: Number,
+            cropClass: String,
+            color: String
+          },
+          side: {
+            label: String,
+            src: String,
+            srcSet: String,
+            sizes: String,
+            width: Number,
+            height: Number,
+            cropClass: String,
+            color: String
+          }
+        },
+        gallery: [
+          {
+            label: String,
+            src: String,
+            srcSet: String,
+            sizes: String,
+            width: Number,
+            height: Number,
+            cropClass: String,
+            color: String
+          }
+        ]
       }
     ],
     imageUrl: String,

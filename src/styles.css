@@ -563,6 +563,33 @@ button {
     linear-gradient(90deg, rgba(245, 234, 214, 0.98) 0%, rgba(245, 234, 214, 0.9) 41%, rgba(13, 11, 8, 0.96) 41%, rgba(4, 4, 3, 1) 100%);
 }
 
+.hero-campaign-poster,
+.hero-poster-shade {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.hero-campaign-poster {
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  opacity: 0.38;
+  filter: saturate(0.92) contrast(1.08) brightness(0.9);
+  transform: scale(1.03);
+  animation: campaignPosterZoom 18s ease-in-out infinite alternate;
+}
+
+.hero-poster-shade {
+  z-index: 1;
+  background:
+    linear-gradient(90deg, rgba(245, 234, 214, 0.92) 0%, rgba(245, 234, 214, 0.72) 40%, rgba(5, 5, 5, 0.36) 42%, rgba(5, 5, 5, 0.86) 100%),
+    radial-gradient(circle at 24% 42%, rgba(255, 247, 232, 0.64), transparent 34rem),
+    radial-gradient(circle at 76% 42%, rgba(215, 168, 63, 0.22), transparent 28rem);
+}
+
 .hero-cream-field {
   position: absolute;
   inset: 0;
@@ -724,6 +751,8 @@ button {
 }
 
 .hero-content {
+  position: relative;
+  z-index: 3;
   display: grid;
   gap: 18px;
   width: 100%;
@@ -772,14 +801,14 @@ button {
   display: grid;
   gap: 12px;
   color: var(--black);
-  font-size: clamp(5.1rem, 10vw, 9.8rem);
+  font-size: clamp(4.4rem, 8.6vw, 8.2rem);
   text-shadow: 0 18px 60px rgba(127, 83, 23, 0.18);
 }
 
 .hero h1 span:not(:first-child) {
   max-width: 600px;
   color: var(--black);
-  font-size: clamp(2.7rem, 5.7vw, 5.4rem);
+  font-size: clamp(2.35rem, 4.7vw, 4.55rem);
   line-height: 0.92;
 }
 
@@ -1229,6 +1258,7 @@ button {
 .mode-dashboard,
 .manifesto,
 .lookbook-section,
+.campaign-sections,
 .shop-section,
 .product-studio,
 .wishlist-section,
@@ -1465,6 +1495,7 @@ button {
 }
 
 .lookbook-section,
+.campaign-sections,
 .shop-section,
 .product-studio,
 .wishlist-section,
@@ -1474,6 +1505,7 @@ button {
 }
 
 .lookbook-section,
+.campaign-sections,
 .shop-section,
 .wishlist-section,
 .tracking-section {
@@ -1572,15 +1604,173 @@ button {
 .lookbook-card span {
   position: absolute;
   right: 18px;
+  bottom: 76px;
+  left: 18px;
+  z-index: 2;
+  color: var(--gold-bright);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.lookbook-card strong {
+  position: absolute;
+  right: 18px;
   bottom: 18px;
   left: 18px;
   z-index: 2;
   color: var(--off-white);
   font-family: "Bebas Neue", "Arial Narrow", Impact, sans-serif;
   font-size: clamp(2.2rem, 4vw, 4.2rem);
+  font-weight: 400;
   letter-spacing: 0.05em;
   line-height: 0.9;
   text-transform: uppercase;
+}
+
+.campaign-sections {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  padding-top: 28px;
+}
+
+.campaign-sections article,
+.newsletter-card {
+  min-height: 154px;
+  padding: 18px;
+  border: 1px solid rgba(127, 83, 23, 0.18);
+  border-radius: 8px;
+  background:
+    linear-gradient(145deg, rgba(255, 247, 232, 0.92), rgba(232, 211, 176, 0.84)),
+    repeating-linear-gradient(115deg, rgba(127, 83, 23, 0.04) 0 1px, transparent 1px 10px);
+  box-shadow: 0 18px 58px rgba(56, 35, 9, 0.12);
+}
+
+.campaign-sections article {
+  display: grid;
+  align-content: space-between;
+  gap: 16px;
+}
+
+.campaign-sections article span,
+.newsletter-card label {
+  color: var(--gold-deep);
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.campaign-sections article strong {
+  color: var(--black);
+  font-family: "Bebas Neue", "Arial Narrow", Impact, sans-serif;
+  font-size: clamp(1.9rem, 3vw, 3.35rem);
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  line-height: 0.9;
+  text-transform: uppercase;
+}
+
+.newsletter-card {
+  display: grid;
+  align-content: space-between;
+  gap: 18px;
+}
+
+.newsletter-card div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.newsletter-card input,
+.newsletter-card button {
+  min-height: 44px;
+  border-radius: 4px;
+}
+
+.newsletter-card input {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid rgba(127, 83, 23, 0.18);
+  background: rgba(255, 247, 232, 0.6);
+  padding: 0 12px;
+  color: var(--black);
+  outline: none;
+}
+
+.newsletter-card button {
+  padding: 0 15px;
+  border: 1px solid rgba(255, 229, 154, 0.55);
+  background: linear-gradient(135deg, var(--gold-bright), var(--gold));
+  color: var(--black);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.collection-campaign-banner {
+  position: relative;
+  min-height: clamp(360px, 44vw, 620px);
+  margin-bottom: 54px;
+  overflow: hidden;
+  border: 1px solid rgba(215, 168, 63, 0.24);
+  border-radius: 8px;
+  background: var(--black);
+  box-shadow: var(--shadow);
+}
+
+.collection-campaign-banner img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: saturate(0.82) contrast(1.08) brightness(0.66);
+  transform: scale(1.02);
+}
+
+.collection-campaign-banner::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background:
+    linear-gradient(90deg, rgba(5, 5, 5, 0.78), rgba(5, 5, 5, 0.2) 48%, rgba(5, 5, 5, 0.72)),
+    radial-gradient(circle at 22% 42%, rgba(215, 168, 63, 0.24), transparent 26rem);
+}
+
+.collection-campaign-banner div {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  align-content: center;
+  gap: 14px;
+  width: min(620px, 100%);
+  min-height: inherit;
+  padding: clamp(28px, 6vw, 72px);
+}
+
+.collection-campaign-banner h2 {
+  margin: 0;
+  color: var(--off-white);
+  font-family: "Bebas Neue", "Arial Narrow", Impact, sans-serif;
+  font-size: clamp(4rem, 9vw, 9rem);
+  font-weight: 400;
+  letter-spacing: 0.05em;
+  line-height: 0.86;
+  text-transform: uppercase;
+}
+
+.collection-campaign-banner p:last-child {
+  max-width: 420px;
+  margin: 0;
+  color: rgba(248, 246, 239, 0.78);
+  font-size: clamp(1rem, 1.7vw, 1.28rem);
+  font-weight: 800;
+  line-height: 1.45;
 }
 
 .shop-toolbar {
@@ -2639,6 +2829,16 @@ button {
   color: var(--gold-bright);
 }
 
+@keyframes campaignPosterZoom {
+  from {
+    transform: scale(1.03) translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: scale(1.1) translate3d(-1vw, -1vh, 0);
+  }
+}
+
 @keyframes slowZoom {
   from {
     transform: scale(1.04) translate3d(0, 0, 0);
@@ -2859,8 +3059,13 @@ button {
 
   .product-list,
   .admin-grid,
-  .wishlist-grid {
+  .wishlist-grid,
+  .campaign-sections {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .newsletter-card {
+    grid-column: span 2;
   }
 
   .product-studio,
@@ -2928,6 +3133,17 @@ button {
       linear-gradient(180deg, rgba(245, 234, 214, 0.96) 0%, rgba(245, 234, 214, 0.92) 58%, rgba(5, 5, 5, 0.98) 58%, #050505 100%);
   }
 
+  .hero-campaign-poster {
+    object-position: center top;
+    opacity: 0.3;
+  }
+
+  .hero-poster-shade {
+    background:
+      linear-gradient(180deg, rgba(245, 234, 214, 0.92) 0%, rgba(245, 234, 214, 0.74) 56%, rgba(5, 5, 5, 0.9) 64%, rgba(5, 5, 5, 0.96) 100%),
+      radial-gradient(circle at 50% 30%, rgba(255, 229, 154, 0.18), transparent 22rem);
+  }
+
   .hero-content,
   .hero-layout {
     max-width: calc(100vw - 36px);
@@ -2946,11 +3162,11 @@ button {
 
   .hero h1 {
     justify-items: center;
-    font-size: clamp(4.6rem, 21vw, 7rem);
+    font-size: clamp(3.85rem, 16vw, 6.2rem);
   }
 
   .hero h1 span:not(:first-child) {
-    font-size: clamp(2.2rem, 10.8vw, 3.35rem);
+    font-size: clamp(2rem, 9vw, 3.2rem);
     line-height: 0.96;
   }
 
@@ -3004,6 +3220,7 @@ button {
   .mode-dashboard,
   .manifesto,
   .lookbook-section,
+  .campaign-sections,
   .shop-section,
   .product-studio,
   .wishlist-section,
@@ -3050,6 +3267,23 @@ button {
 
   .mode-dashboard-grid {
     grid-template-columns: 1fr;
+  }
+
+  .campaign-sections {
+    grid-template-columns: 1fr;
+  }
+
+  .newsletter-card {
+    grid-column: auto;
+  }
+
+  .collection-campaign-banner {
+    min-height: 470px;
+    margin-bottom: 38px;
+  }
+
+  .collection-campaign-banner div {
+    align-content: end;
   }
 
   .lookbook-grid,

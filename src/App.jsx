@@ -29,6 +29,13 @@ import OrderConfirmed from "./pages/OrderConfirmed.jsx";
 const money = (value) => `$${value.toFixed(2)}`;
 const previewImage = `${import.meta.env.BASE_URL}og-preview.png`;
 const brandLogo = `${import.meta.env.BASE_URL}brand/mg69-logo3.png`;
+const campaignVersion = "v=campaign-2";
+const campaignImages = {
+  hero: `${import.meta.env.BASE_URL}images/mg69-hero.jpg?${campaignVersion}`,
+  lookbook1: `${import.meta.env.BASE_URL}images/mg69-lookbook-1.jpg?${campaignVersion}`,
+  lookbook2: `${import.meta.env.BASE_URL}images/mg69-lookbook-2.jpg?${campaignVersion}`,
+  lookbook3: `${import.meta.env.BASE_URL}images/mg69-lookbook-3.jpg?${campaignVersion}`
+};
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const fallbackImage = products[0].image;
 const logoParticles = [
@@ -70,6 +77,13 @@ const adminLinks = [
   ["admin-analytics", "Analytics"],
   ["admin-shipping", "Shipping"],
   ["admin-settings", "Settings"]
+];
+const campaignHighlights = [
+  ["New Arrivals", "Designed for the Bold"],
+  ["Luxury Collection", "Luxury in Every Detail"],
+  ["Featured Products", "Streetwear Elevated"],
+  ["About MG69", "Where Confidence Meets Style"],
+  ["Newsletter Signup", "MG69 Beyond Fashion"]
 ];
 
 function buildSizeStock(sizes, stock, existingSizeStock) {
@@ -770,6 +784,15 @@ function Hero() {
       onPointerMove={handlePointerMove}
       style={heroPointerStyle}
     >
+      <img
+        className="hero-campaign-poster"
+        alt="MG69 Luxury campaign poster"
+        fetchpriority="high"
+        src={campaignImages.hero}
+        width="1254"
+        height="1254"
+      />
+      <div className="hero-poster-shade" aria-hidden="true" />
       <div className="hero-cream-field" aria-hidden="true" />
       <div className="hero-gold-beam" aria-hidden="true" />
       <div className="hero-smoke-field" aria-hidden="true" />
@@ -796,11 +819,11 @@ function Hero() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.56, duration: 0.58, ease: "easeOut" }}
           >
-            Royal streetwear / Drop 001
+            MG69 / Luxury Collection
           </motion.p>
           <h1>
-            <span>MG69</span>
-            <span>Street Luxury Redefined</span>
+            <span>MG69 Luxury</span>
+            <span>Premium Streetwear Collection</span>
           </h1>
           <motion.p
             className="hero-line"
@@ -808,7 +831,7 @@ function Hero() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.72, duration: 0.58, ease: "easeOut" }}
           >
-            Cream, black, and gold pieces built for uncommon presence.
+            Designed for the bold. Luxury in every detail. Streetwear elevated.
           </motion.p>
           <motion.div
             className="hero-actions"
@@ -816,7 +839,7 @@ function Hero() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.92, duration: 0.58, ease: "easeOut" }}
           >
-            <a className="primary-command hero-command" href="#shop">Shop Drop 001</a>
+            <a className="primary-command hero-command" href="#shop">Shop Collection</a>
             <a className="secondary-command" href="#lookbook">View lookbook</a>
           </motion.div>
           <motion.div
@@ -826,9 +849,9 @@ function Hero() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1.08, duration: 0.55, ease: "easeOut" }}
           >
-            <span>Metallic gold</span>
-            <span>Matte black</span>
-            <span>Royal street</span>
+            <span>Designed for the Bold</span>
+            <span>Luxury Detail</span>
+            <span>Streetwear Elevated</span>
           </motion.div>
           <motion.a
             className="hero-feature-piece"
@@ -967,9 +990,27 @@ function CategoryNavigator({ activeCategory, activeCollection, onCategory, onCol
 
 function StorySections() {
   const lookbookVisuals = [
-    { image: products[1].image, label: "Midnight volume" },
-    { image: products[3].image, label: "Signal black" },
-    { image: products[2].image, label: "Bone cream" }
+    {
+      image: campaignImages.lookbook1,
+      poster: "Poster 1",
+      title: "FW 2026 Collection",
+      width: 1254,
+      height: 1254
+    },
+    {
+      image: campaignImages.lookbook2,
+      poster: "Poster 2",
+      title: "Urban Luxury Series",
+      width: 1086,
+      height: 1448
+    },
+    {
+      image: campaignImages.lookbook3,
+      poster: "Poster 3",
+      title: "MG69 Essentials",
+      width: 1086,
+      height: 1448
+    }
   ];
 
   return (
@@ -988,23 +1029,40 @@ function StorySections() {
 
       <section className="lookbook-section" id="lookbook">
         <div className="section-heading">
-          <p className="eyebrow">Lookbook reels</p>
-          <h2>Editorial shadows, leather texture, metallic light.</h2>
+          <p className="eyebrow">Campaign Editorial</p>
+          <h2>LOOKBOOK</h2>
         </div>
         <div className="lookbook-grid">
-          {lookbookVisuals.map(({ image, label }) => (
+          {lookbookVisuals.map(({ height, image, poster, title, width }) => (
             <motion.article
               className="lookbook-card"
               initial={{ opacity: 0, y: 30 }}
-              key={label}
+              key={title}
               viewport={{ once: true, margin: "-80px" }}
               whileInView={{ opacity: 1, y: 0 }}
             >
-              <img alt={`${label} MG69 lookbook`} src={image} loading="lazy" {...getImageSize(image)} />
-              <span>{label}</span>
+              <img alt={`${title} MG69 lookbook poster`} src={image} loading="lazy" width={width} height={height} />
+              <span>{poster}</span>
+              <strong>{title}</strong>
             </motion.article>
           ))}
         </div>
+      </section>
+
+      <section className="campaign-sections" aria-label="MG69 campaign sections">
+        {campaignHighlights.map(([title, tagline]) => (
+          <article key={title}>
+            <span>{title}</span>
+            <strong>{tagline}</strong>
+          </article>
+        ))}
+        <form className="newsletter-card">
+          <label htmlFor="newsletter-email">Newsletter Signup</label>
+          <div>
+            <input id="newsletter-email" type="email" placeholder="email@mg69.com" />
+            <button type="submit">Join</button>
+          </div>
+        </form>
       </section>
     </>
   );
@@ -1013,6 +1071,20 @@ function StorySections() {
 function Shop({ isLoading, products, searchQuery, selectedProductId, wishlist, onSelect, onWishlist }) {
   return (
     <section className="shop-section" id="shop">
+      <div className="collection-campaign-banner">
+        <img
+          alt="MG69 Luxury collection banner"
+          src={campaignImages.hero}
+          loading="lazy"
+          width="1254"
+          height="1254"
+        />
+        <div>
+          <p className="eyebrow">MG69 Luxury</p>
+          <h2>Designed for the Bold.</h2>
+          <p>Premium Streetwear Collection.</p>
+        </div>
+      </div>
       <div className="section-heading">
         <p className="eyebrow">Live catalog</p>
         <h2>Shop MG69</h2>

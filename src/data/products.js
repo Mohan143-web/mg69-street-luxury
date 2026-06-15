@@ -5,8 +5,43 @@ export const categories = ["All", "Men", "Women"];
 const productAsset = (fileName) => `${import.meta.env.BASE_URL}products/${fileName}`;
 const firstPieceFront = productAsset("first-piece-front.png");
 const firstPieceBack = productAsset("first-piece-back.png");
+const luxurySetFront = productAsset("first-piece-front.png");
+const luxurySetBack = productAsset("first-piece-back.png");
 
 export const products = [
+  {
+    id: "mg69-luxury-set",
+    name: "MG69 Luxury Set",
+    collection: "Drop 001",
+    price: 189,
+    category: "Men",
+    type: "Luxury Streetwear Set",
+    stock: 50,
+    featured: true,
+    sizeStock: { S: 8, M: 12, L: 12, XL: 10, XXL: 8 },
+    imageClass: "crop-hoodie",
+    image: luxurySetFront,
+    images: [
+      { label: "Front", src: luxurySetFront },
+      { label: "Back", src: luxurySetBack },
+      { label: "Model Front", src: luxurySetFront },
+      { label: "Model Back", src: luxurySetBack }
+    ],
+    tagline: "Premium oversized luxury streetwear set.",
+    description: "Premium oversized luxury streetwear set crafted with heavyweight fabric.",
+    sizes: ["S", "M", "L", "XL", "XXL"],
+    colors: [
+      { name: "Stone Grey", hex: "#8e8b84" },
+      { name: "Matte Black", hex: "#080807" },
+      { name: "Cream", hex: "#efebe0" }
+    ],
+    specs: {
+      Fabric: "Heavyweight Cotton Fleece",
+      Weight: "420 GSM",
+      Fit: "Oversized"
+    },
+    tags: ["MG69 Luxury Set", "Drop 001", "Featured"]
+  },
   {
     id: "mg69-first-piece-smile-hoodie",
     name: "First Piece Smile Hoodie",

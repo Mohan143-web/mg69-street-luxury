@@ -37,6 +37,11 @@ const campaignImages = {
   poster2: campaignAsset("mg69-poster-2.jpg"),
   poster3: campaignAsset("mg69-poster-3.jpg")
 };
+const collectionAsset = (fileName) => `${import.meta.env.BASE_URL}collections/${fileName}?${campaignVersion}`;
+const menCollectionImages = {
+  black: collectionAsset("mg69-black-collection.jpg"),
+  grey: collectionAsset("mg69-grey-collection.jpg")
+};
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const fallbackImage = products[0].image;
 const logoParticles = [
@@ -259,6 +264,9 @@ function App() {
     if (routePath === "men") {
       setActiveCategory("Men");
       setActiveCollection("All");
+      window.requestAnimationFrame(() => {
+        document.getElementById("men")?.scrollIntoView({ block: "start" });
+      });
     }
 
     if (routePath === "women") {
@@ -297,20 +305,21 @@ function App() {
     window.location.hash = "product";
   }
 
-  function addToCart() {
-    if (selectedSizeStock <= 0) return;
+  function addProductToCart(product, size, color, quantity = 1) {
+    const availableStock = getSizeStock(product, size);
+    if (availableStock <= 0) return;
 
-    const requestedQuantity = Math.min(selectedQuantity, selectedSizeStock);
+    const requestedQuantity = Math.min(quantity, availableStock);
 
     setCart((current) => {
       const existing = current.find(
-        (item) => item.productId === selectedProduct.id && item.size === selectedSize && item.color === selectedColor
+        (item) => item.productId === product.id && item.size === size && item.color === color
       );
 
       if (existing) {
         return current.map((item) =>
           item.cartId === existing.cartId
-            ? { ...item, quantity: Math.min(selectedSizeStock, item.quantity + requestedQuantity) }
+            ? { ...item, quantity: Math.min(availableStock, item.quantity + requestedQuantity) }
             : item
         );
       }
@@ -318,19 +327,23 @@ function App() {
       return [
         ...current,
         {
-          cartId: `${selectedProduct.id}-${selectedSize}-${selectedColor}-${Date.now()}`,
-          productId: selectedProduct.id,
-          name: selectedProduct.name,
-          price: selectedProduct.price,
-          size: selectedSize,
-          color: selectedColor,
+          cartId: `${product.id}-${size}-${color}-${Date.now()}`,
+          productId: product.id,
+          name: product.name,
+          price: product.price,
+          size,
+          color,
           quantity: requestedQuantity,
-          stock: selectedSizeStock,
-          image: selectedProduct.image,
-          imageClass: selectedProduct.imageClass
+          stock: availableStock,
+          image: product.image,
+          imageClass: product.imageClass
         }
       ];
     });
+  }
+
+  function addToCart() {
+    addProductToCart(selectedProduct, selectedSize, selectedColor, selectedQuantity);
   }
 
   function updateQuantity(cartId, delta) {
@@ -451,6 +464,13 @@ function App() {
               onSearch={setSearchQuery}
               searchQuery={searchQuery}
             />
+            {routePath === "men" && (
+              <MensCollectionLanding
+                products={catalog}
+                onAdd={addProductToCart}
+                onSelect={selectProduct}
+              />
+            )}
             <StorySections />
             <Shop
               products={filteredProducts}
@@ -1008,6 +1028,117 @@ function CategoryNavigator({ activeCategory, activeCollection, onCategory, onCol
           />
         </div>
       </label>
+    </section>
+  );
+}
+
+function MensCollectionLanding({ products, onAdd, onSelect }) {
+  const featuredProduct =
+    products.find((product) => product.id === "mg69-luxury-set") ||
+    products.find((product) => product.category === "Men") ||
+    products[0];
+  const menProducts = products.filter((product) => product.category === "Men").slice(0, 3);
+  const [featuredSize, setFeaturedSize] = useState(featuredProduct?.sizes?.includes("M") ? "M" : featuredProduct?.sizes?.[0]);
+  const featuredImages = featuredProduct?.images?.length ? featuredProduct.images : [{ label: "Front", src: featuredProduct?.image }];
+
+  useEffect(() => {
+    const nextSize = featuredProduct?.sizes?.includes("M") ? "M" : featuredProduct?.sizes?.[0];
+    setFeaturedSize(nextSize);
+  }, [featuredProduct?.id]);
+
+  if (!featuredProduct) return null;
+
+  const featuredColor = featuredProduct.colors?.[0]?.name || "Matte Black";
+  const frontImage = featuredImages[0]?.src || featuredProduct.image;
+  const backImage = featuredImages[1]?.src || frontImage;
+
+  return (
+    <section className="mens-collection" id="men">
+      <div className="men-hero-banner">
+        <img
+          alt="MG69 Luxury Collection black campaign"
+          src={menCollectionImages.black}
+          loading="lazy"
+          width="1086"
+          height="1448"
+        />
+        <div className="men-hero-overlay">
+          <p className="eyebrow">MEN / DROP 001</p>
+          <h1>MEN'S COLLECTION</h1>
+          <p>Premium Streetwear. Luxury Redefined.</p>
+          <a className="primary-command" href="#shop">Shop Now</a>
+        </div>
+      </div>
+
+      <div className="men-arrivals">
+        <div className="section-heading">
+          <p className="eyebrow">New Arrivals</p>
+          <h2>Drop 001 Menswear</h2>
+        </div>
+        <div className="men-arrivals-grid">
+          {menProducts.map((product) => (
+            <button className="men-arrival-card" key={product.id} onClick={() => onSelect(product)} type="button">
+              <img alt={`${product.name} new arrival`} src={product.image} loading="lazy" {...getImageSize(product.image)} />
+              <span>{product.collection}</span>
+              <strong>{product.name}</strong>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="men-featured-product">
+        <div className="men-product-gallery">
+          <article>
+            <img alt={`${featuredProduct.name} front view`} src={frontImage} loading="lazy" {...getImageSize(frontImage)} />
+            <span>Front View</span>
+          </article>
+          <article>
+            <img alt={`${featuredProduct.name} back view`} src={backImage} loading="lazy" {...getImageSize(backImage)} />
+            <span>Back View</span>
+          </article>
+        </div>
+
+        <div className="men-product-panel">
+          <p className="eyebrow">Featured Product</p>
+          <h2>{featuredProduct.name}</h2>
+          <strong>{money(featuredProduct.price)}</strong>
+          <p>{featuredProduct.description}</p>
+          <div className="men-size-row" aria-label={`${featuredProduct.name} sizes`}>
+            {featuredProduct.sizes.map((size) => {
+              const isSoldOut = getSizeStock(featuredProduct, size) <= 0;
+
+              return (
+                <button
+                  className={featuredSize === size ? "active" : ""}
+                  disabled={isSoldOut}
+                  key={size}
+                  onClick={() => setFeaturedSize(size)}
+                  type="button"
+                >
+                  {size}
+                </button>
+              );
+            })}
+          </div>
+          <button
+            className="primary-command full"
+            onClick={() => onAdd(featuredProduct, featuredSize, featuredColor, 1)}
+            type="button"
+          >
+            Add to Cart
+          </button>
+        </div>
+      </div>
+
+      <div className="collection-spotlight">
+        <img
+          alt="MG69 grey collection spotlight"
+          src={menCollectionImages.grey}
+          loading="lazy"
+          width="1254"
+          height="1254"
+        />
+      </div>
     </section>
   );
 }

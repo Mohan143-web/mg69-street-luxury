@@ -27,8 +27,6 @@ const utilityColors = [
 const utilityViewLabels = [
   ["front-view", "Front View"],
   ["back-view", "Back View"],
-  ["left-side-view", "Left Side View"],
-  ["right-side-view", "Right Side View"],
   ["model-front-view", "Model Front View"],
   ["model-back-view", "Model Back View"],
   ["flat-lay-front", "Flat Lay Front"],
@@ -52,7 +50,6 @@ const utilityColorVariants = [
     images: {
       front: utilityProductImage("stone-grey", "Stone Grey", "front-view", "Stone Grey Front View"),
       back: utilityProductImage("stone-grey", "Stone Grey", "back-view", "Stone Grey Back View"),
-      side: utilityProductImage("stone-grey", "Stone Grey", "left-side-view", "Stone Grey Side View")
     },
     gallery: utilityGalleryFor("stone-grey", "Stone Grey")
   },
@@ -62,7 +59,6 @@ const utilityColorVariants = [
     images: {
       front: utilityProductImage("matte-black", "Matte Black", "front-view", "Matte Black Front View"),
       back: utilityProductImage("matte-black", "Matte Black", "back-view", "Matte Black Back View"),
-      side: utilityProductImage("matte-black", "Matte Black", "left-side-view", "Matte Black Side View")
     },
     gallery: utilityGalleryFor("matte-black", "Matte Black")
   },
@@ -72,7 +68,6 @@ const utilityColorVariants = [
     images: {
       front: utilityProductImage("dark-olive", "Dark Olive", "front-view", "Dark Olive Front View"),
       back: utilityProductImage("dark-olive", "Dark Olive", "back-view", "Dark Olive Back View"),
-      side: utilityProductImage("dark-olive", "Dark Olive", "left-side-view", "Dark Olive Side View")
     },
     gallery: utilityGalleryFor("dark-olive", "Dark Olive")
   }

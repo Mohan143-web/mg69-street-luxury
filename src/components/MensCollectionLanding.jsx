@@ -11,8 +11,6 @@
 // IMAGE FOLDER STRUCTURE:
 //   public/images/products/utility-set/stone-grey/front.webp
 //   public/images/products/utility-set/stone-grey/back.webp
-//   public/images/products/utility-set/stone-grey/left.webp
-//   public/images/products/utility-set/stone-grey/right.webp
 //   public/images/products/utility-set/stone-grey/model-front.webp
 //   public/images/products/utility-set/stone-grey/model-back.webp
 //   public/images/products/utility-set/stone-grey/flat-front.webp
@@ -32,8 +30,6 @@ const BASE = import.meta.env.BASE_URL;
 const VIEWS = [
   { id: "front",       label: "Front View" },
   { id: "back",        label: "Back View" },
-  { id: "left",        label: "Left Side" },
-  { id: "right",       label: "Right Side" },
   { id: "model-front", label: "Model Front" },
   { id: "model-back",  label: "Model Back" },
   { id: "flat-front",  label: "Flat Lay Front" },

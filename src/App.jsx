@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { createCheckoutSession } from "./api/checkout.js";
+import MensCollectionLanding from "./components/MensCollectionLanding.jsx";
 import { categories, collections, products, utilityCampaignImages } from "./data/products.js";
 import { fetchProducts, hasApi, saveOrder } from "./lib/api.js";
 import { readStoredValue, writeStoredValue } from "./lib/storage.js";
@@ -35,19 +36,6 @@ import OrderConfirmed from "./pages/OrderConfirmed.jsx";
 const money = (value) => `$${value.toFixed(2)}`;
 const previewImage = `${import.meta.env.BASE_URL}og-preview.png`;
 const brandLogo = `${import.meta.env.BASE_URL}brand/mg69-logo3.png`;
-const campaignVersion = "v=campaign-3";
-const campaignAsset = (fileName) => `${import.meta.env.BASE_URL}images/${fileName}?${campaignVersion}`;
-const campaignImages = {
-  hero: campaignAsset("mg69-poster-1.jpg"),
-  poster1: campaignAsset("mg69-poster-1.jpg"),
-  poster2: campaignAsset("mg69-poster-2.jpg"),
-  poster3: campaignAsset("mg69-poster-3.jpg")
-};
-const collectionAsset = (fileName) => `${import.meta.env.BASE_URL}collections/${fileName}?${campaignVersion}`;
-const menCollectionImages = {
-  black: collectionAsset("mg69-black-collection.jpg"),
-  grey: collectionAsset("mg69-grey-collection.jpg")
-};
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const fallbackImage = products[0].image;
 const logoParticles = [
@@ -92,25 +80,25 @@ const adminLinks = [
 ];
 const campaigns = [
   {
-    image: campaignImages.poster1,
-    title: "MG 69 LUXURY",
-    subtitle: "Premium Streetwear Collection",
-    width: 1254,
-    height: 1254
+    image: `${import.meta.env.BASE_URL}images/products/utility-set/stone-grey/model-front.webp`,
+    title: "STONE GREY",
+    subtitle: "The anchor colorway. Clean, quiet, authoritative.",
+    width: 800,
+    height: 1000
   },
   {
-    image: campaignImages.poster2,
-    title: "DESIGNED FOR THE BOLD",
-    subtitle: "FW 24/25 Campaign",
-    width: 1086,
-    height: 1448
+    image: `${import.meta.env.BASE_URL}images/products/utility-set/matte-black/model-front.webp`,
+    title: "MATTE BLACK",
+    subtitle: "Zero compromise. Built for the bold.",
+    width: 800,
+    height: 1000
   },
   {
-    image: campaignImages.poster3,
-    title: "STREETWEAR ELEVATED",
-    subtitle: "Luxury Editorial Lookbook",
-    width: 1086,
-    height: 1448
+    image: `${import.meta.env.BASE_URL}images/products/utility-set/dark-olive/model-front.webp`,
+    title: "DARK OLIVE",
+    subtitle: "Military utility meets luxury streetwear.",
+    width: 800,
+    height: 1000
   }
 ];
 const campaignHighlights = [
@@ -1194,118 +1182,6 @@ function CategoryNavigator({ activeCategory, activeCollection, onCategory, onCol
           />
         </div>
       </label>
-    </section>
-  );
-}
-
-function MensCollectionLanding({ products, onAdd, onSelect }) {
-  const featuredProduct =
-    products.find((product) => product.id === "mg69-utility-set") ||
-    products.find((product) => product.id === "mg69-luxury-set") ||
-    products.find((product) => product.category === "Men") ||
-    products[0];
-  const menProducts = products.filter((product) => product.category === "Men").slice(0, 3);
-  const [featuredSize, setFeaturedSize] = useState(featuredProduct?.sizes?.includes("M") ? "M" : featuredProduct?.sizes?.[0]);
-  const featuredImages = featuredProduct?.images?.length ? featuredProduct.images : [{ label: "Front", src: featuredProduct?.image }];
-
-  useEffect(() => {
-    const nextSize = featuredProduct?.sizes?.includes("M") ? "M" : featuredProduct?.sizes?.[0];
-    setFeaturedSize(nextSize);
-  }, [featuredProduct?.id]);
-
-  if (!featuredProduct) return null;
-
-  const featuredColor = featuredProduct.colors?.[0]?.name || "Matte Black";
-  const frontImage = featuredImages[0] || featuredProduct.image;
-  const backImage = featuredImages[1] || frontImage;
-
-  return (
-    <section className="mens-collection" id="men">
-      <div className="men-hero-banner">
-        <img
-          alt="MG69 Luxury Collection black campaign"
-          src={menCollectionImages.black}
-          loading="lazy"
-          width="1086"
-          height="1448"
-        />
-        <div className="men-hero-overlay">
-          <p className="eyebrow">MEN / DROP 001</p>
-          <h1>MEN'S COLLECTION</h1>
-          <p>Premium Streetwear. Luxury Redefined.</p>
-          <a className="primary-command" href="#shop">Shop Now</a>
-        </div>
-      </div>
-
-      <div className="men-arrivals">
-        <div className="section-heading">
-          <p className="eyebrow">New Arrivals</p>
-          <h2>Drop 001 Menswear</h2>
-        </div>
-        <div className="men-arrivals-grid">
-          {menProducts.map((product) => (
-            <button className="men-arrival-card" key={product.id} onClick={() => onSelect(product)} type="button">
-              <ProductImage alt={`${product.name} new arrival`} image={product.images?.[0] || product.image} />
-              <span>{product.collection}</span>
-              <strong>{product.name}</strong>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="men-featured-product">
-        <div className="men-product-gallery">
-          <article>
-            <ProductImage alt={`${featuredProduct.name} front view`} image={frontImage} />
-            <span>Front View</span>
-          </article>
-          <article>
-            <ProductImage alt={`${featuredProduct.name} back view`} image={backImage} />
-            <span>Back View</span>
-          </article>
-        </div>
-
-        <div className="men-product-panel">
-          <p className="eyebrow">Featured Product</p>
-          <h2>{featuredProduct.name}</h2>
-          <strong>{money(featuredProduct.price)}</strong>
-          <p>{featuredProduct.description}</p>
-          <div className="men-size-row" aria-label={`${featuredProduct.name} sizes`}>
-            {featuredProduct.sizes.map((size) => {
-              const isSoldOut = getSizeStock(featuredProduct, size) <= 0;
-
-              return (
-                <button
-                  className={featuredSize === size ? "active" : ""}
-                  disabled={isSoldOut}
-                  key={size}
-                  onClick={() => setFeaturedSize(size)}
-                  type="button"
-                >
-                  {size}
-                </button>
-              );
-            })}
-          </div>
-          <button
-            className="primary-command full"
-            onClick={() => onAdd(featuredProduct, featuredSize, featuredColor, 1)}
-            type="button"
-          >
-            Add to Cart
-          </button>
-        </div>
-      </div>
-
-      <div className="collection-spotlight">
-        <img
-          alt="MG69 grey collection spotlight"
-          src={menCollectionImages.grey}
-          loading="lazy"
-          width="1254"
-          height="1254"
-        />
-      </div>
     </section>
   );
 }

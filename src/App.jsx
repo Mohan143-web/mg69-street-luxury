@@ -152,7 +152,7 @@ function ProductImage({ image, alt, className = "", fetchPriority, loading = "la
     <img
       alt={alt}
       className={`${className} ${imageData.cropClass || ""}`.trim()}
-      fetchPriority={fetchPriority}
+      fetchpriority={fetchPriority}
       height={dimensions.height}
       loading={loading}
       sizes={sizes || imageData.sizes}

@@ -75,6 +75,10 @@ const utilityColorVariants = [
 const utilityHeroImage = utilityResponsiveImage("utility-campaign-hero", "MG69 Utility campaign model", "utility-full");
 const utilityBoardImage = utilityResponsiveImage("utility-product-board", "MG69 Utility product board", "utility-board");
 const utilityDefaultGallery = utilityGalleryFor("stone-grey", "Stone Grey");
+const utilityImageByLabel = (label, fallbackIndex = 0) =>
+  utilityDefaultGallery.find((image) => image.label === label) ||
+  utilityDefaultGallery[fallbackIndex] ||
+  utilityDefaultGallery[0];
 
 export const utilityCampaignImages = {
   hero: utilityHeroImage,
@@ -119,7 +123,7 @@ export const products = [
     stock: 125,
     sizeStock: utilitySizeStock,
     imageClass: "crop-utility",
-    image: utilityDefaultGallery[6].src,
+    image: utilityImageByLabel("Flat Lay Front", 4).src,
     images: utilityDefaultGallery,
     colorVariants: utilityColorVariants,
     tagline: "Structured outer layer with a premium utility silhouette.",
@@ -143,7 +147,7 @@ export const products = [
     stock: 125,
     sizeStock: utilitySizeStock,
     imageClass: "crop-utility",
-    image: utilityDefaultGallery[4].src,
+    image: utilityImageByLabel("Model Front View", 2).src,
     images: utilityDefaultGallery,
     colorVariants: utilityColorVariants,
     tagline: "Layer-ready heavyweight hoodie for the Utility Collection.",
@@ -167,7 +171,7 @@ export const products = [
     stock: 125,
     sizeStock: utilitySizeStock,
     imageClass: "crop-utility",
-    image: utilityDefaultGallery[7].src,
+    image: utilityImageByLabel("Flat Lay Back", 5).src,
     images: utilityDefaultGallery,
     colorVariants: utilityColorVariants,
     tagline: "Relaxed utility cargo pants with premium pocket detail.",

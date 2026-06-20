@@ -8,6 +8,7 @@ import {
   Edit3,
   Heart,
   LayoutDashboard,
+  LogOut,
   Maximize2,
   Menu,
   Minus,
@@ -28,8 +29,21 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { createCheckoutSession } from "./api/checkout.js";
 import MensCollectionLanding from "./components/MensCollectionLanding.jsx";
+import WomensCollectionLanding from "./components/WomensCollectionLanding.jsx";
 import { categories, collections, products, utilityCampaignImages } from "./data/products.js";
-import { fetchProducts, hasApi, saveOrder } from "./lib/api.js";
+import {
+  createProduct,
+  deleteProduct,
+  fetchMe,
+  fetchOrders,
+  fetchProducts,
+  getToken,
+  hasApi,
+  loginUser,
+  registerUser,
+  setToken,
+  updateProduct
+} from "./lib/api.js";
 import { readStoredValue, writeStoredValue } from "./lib/storage.js";
 import OrderConfirmed from "./pages/OrderConfirmed.jsx";
 
@@ -38,6 +52,33 @@ const previewImage = `${import.meta.env.BASE_URL}og-preview.png`;
 const brandLogo = `${import.meta.env.BASE_URL}brand/mg69-logo3.png`;
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const fallbackImage = products[0].image;
+const BASE_URL = import.meta.env.BASE_URL;
+
+// API-served products use root-relative asset paths (e.g. "/products/x.png").
+// On GitHub Pages the app is served under a sub-path, so prefix BASE_URL.
+function withBase(src) {
+  if (typeof src !== "string" || !src) return src;
+  if (/^(https?:|data:|blob:)/.test(src)) return src;
+  if (src.startsWith(BASE_URL)) return src;
+  return `${BASE_URL}${src.replace(/^\//, "")}`;
+}
+
+function withBaseSrcSet(srcSet) {
+  if (typeof srcSet !== "string" || !srcSet) return srcSet;
+  return srcSet
+    .split(",")
+    .map((part) => {
+      const [url, descriptor] = part.trim().split(/\s+/);
+      return descriptor ? `${withBase(url)} ${descriptor}` : withBase(url);
+    })
+    .join(", ");
+}
+
+function normalizeImage(image) {
+  if (!image) return image;
+  if (typeof image === "string") return withBase(image);
+  return { ...image, src: withBase(image.src), srcSet: withBaseSrcSet(image.srcSet) };
+}
 const logoParticles = [
   { x: "8%", y: "18%", size: "5px", delay: "0s" },
   { x: "18%", y: "76%", size: "3px", delay: "0.8s" },
@@ -163,19 +204,31 @@ function ProductImage({ image, alt, className = "", fetchPriority, loading = "la
   );
 }
 
+function normalizeColorVariant(variant) {
+  if (!variant) return variant;
+  return {
+    ...variant,
+    images: variant.images
+      ? Object.fromEntries(Object.entries(variant.images).map(([key, image]) => [key, normalizeImage(image)]))
+      : variant.images,
+    gallery: variant.gallery?.map(normalizeImage)
+  };
+}
+
 function normalizeProduct(product) {
-  const image = product.image || product.imageUrl || product.images?.[0]?.src || fallbackImage;
+  const image = withBase(product.image || product.imageUrl || product.images?.[0]?.src || fallbackImage);
   const sizes = product.sizes?.length ? product.sizes : ["S", "M", "L"];
   const stock = product.stock || 0;
 
   return {
     ...product,
-    id: product.id || product._id,
+    id: String(product.id || product._id || ""),
     colors: (product.colors?.length ? product.colors : [{ name: "Matte Black", hex: "#080807" }]).map((color) =>
       typeof color === "string" ? { name: color, hex: "#080807" } : color
     ),
     image,
-    images: product.images?.length ? product.images : [{ label: "Front", src: image }],
+    images: (product.images?.length ? product.images : [{ label: "Front", src: image }]).map(normalizeImage),
+    colorVariants: product.colorVariants?.map(normalizeColorVariant),
     sizes,
     sizeStock: buildSizeStock(sizes, stock, product.sizeStock),
     specs: product.specs || { Fit: product.type || "Ready to wear", Stock: `${product.stock || 0} units` },
@@ -212,8 +265,17 @@ function App() {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [orderMessage, setOrderMessage] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [auth, setAuth] = usePersistentState("mg69-auth", { user: null });
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authError, setAuthError] = useState("");
+  const [authBusy, setAuthBusy] = useState(false);
+  const [orders, setOrders] = useState([]);
   const [route, setRoute] = useState(window.location.hash.replace("#", "") || "home");
   const routePath = route.replace(/^\//, "").split("?")[0] || "home";
+  const currentUser = auth?.user || null;
+  const isAdmin = currentUser?.role === "admin";
+  // Admin is open in the no-backend demo, but gated behind admin auth once an API is wired.
+  const adminUnlocked = !hasApi || isAdmin;
 
   const selectedProduct = catalog.find((product) => product.id === selectedProductId) || catalog[0] || products[0];
   const selectedSizeStock = getSizeStock(selectedProduct, selectedSize);
@@ -304,6 +366,32 @@ function App() {
     };
   }, []);
 
+  // Validate a stored session on load; drop it if the token is rejected/expired.
+  useEffect(() => {
+    if (!hasApi || !getToken()) return;
+
+    fetchMe()
+      .then((data) => {
+        if (data?.user) setAuth({ user: data.user });
+      })
+      .catch(() => {
+        setToken(null);
+        setAuth({ user: null });
+      });
+  }, [setAuth]);
+
+  // Load real orders for authenticated admins.
+  useEffect(() => {
+    if (!hasApi || !isAdmin) {
+      setOrders([]);
+      return;
+    }
+
+    fetchOrders()
+      .then((data) => setOrders(Array.isArray(data) ? data : []))
+      .catch(() => setOrders([]));
+  }, [isAdmin]);
+
   useEffect(() => {
     if (customerLinks.some(([target]) => target === routePath)) {
       setAppMode("customer");
@@ -328,13 +416,57 @@ function App() {
     }
 
     if (routePath.startsWith("admin")) {
-      setAppMode("admin");
+      if (adminUnlocked) setAppMode("admin");
+      // Don't pop the sign-in modal while an existing token is still being validated.
+      else if (!getToken()) setAuthModalOpen(true);
     }
-  }, [routePath]);
+  }, [routePath, adminUnlocked]);
+
+  // Once a session resolves, close any open auth modal.
+  useEffect(() => {
+    if (currentUser) setAuthModalOpen(false);
+  }, [currentUser]);
 
   function handleModeChange(mode) {
+    if (mode === "admin" && !adminUnlocked) {
+      setAuthError("");
+      setAuthModalOpen(true);
+      return;
+    }
     setAppMode(mode);
     window.location.hash = "mode-dashboard";
+  }
+
+  async function handleAuthSubmit(mode, formValues) {
+    setAuthBusy(true);
+    setAuthError("");
+
+    try {
+      const data = mode === "register" ? await registerUser(formValues) : await loginUser(formValues);
+      if (data?.token) setToken(data.token);
+      setAuth({ user: data.user });
+
+      if (Array.isArray(data.user?.wishlist) && data.user.wishlist.length) {
+        setWishlist((current) => Array.from(new Set([...current, ...data.user.wishlist])));
+      }
+
+      setAuthModalOpen(false);
+
+      if (data.user?.role === "admin") {
+        setAppMode("admin");
+        window.location.hash = "admin";
+      }
+    } catch (error) {
+      setAuthError(error.message || "Authentication failed. Try again.");
+    } finally {
+      setAuthBusy(false);
+    }
+  }
+
+  function handleLogout() {
+    setToken(null);
+    setAuth({ user: null });
+    setAppMode("customer");
   }
 
   useEffect(() => {
@@ -406,22 +538,41 @@ function App() {
     });
   }
 
-  function addAdminProduct() {
+  async function addAdminProduct() {
     const template = catalog.find((product) => product.id === "mg69-utility-set") || catalog[0];
-    const id = `mg69-admin-product-${Date.now()}`;
+    const draft = {
+      name: "New MG69 Utility Product",
+      price: 169,
+      stock: 125,
+      category: template?.category || "Men",
+      collection: template?.collection || "MG69 Utility Collection",
+      type: template?.type,
+      sizes: template?.sizes || ["S", "M", "L", "XL", "XXL"],
+      sizeStock: { S: 25, M: 25, L: 25, XL: 25, XXL: 25 },
+      colors: template?.colors,
+      colorVariants: template?.colorVariants,
+      image: template?.image,
+      images: template?.images,
+      tagline: template?.tagline,
+      description: template?.description,
+      specs: template?.specs,
+      tags: [...(template?.tags || []), "Admin Added"]
+    };
 
-    setCatalog((current) => [
-      normalizeProduct({
-        ...template,
-        id,
-        name: "New MG69 Utility Product",
-        price: 169,
-        stock: 125,
-        sizeStock: { S: 25, M: 25, L: 25, XL: 25, XXL: 25 },
-        tags: [...(template.tags || []), "Admin Added"]
-      }),
-      ...current
-    ]);
+    if (hasApi && isAdmin) {
+      try {
+        const created = await createProduct(draft);
+        const normalized = normalizeProduct(created);
+        setCatalog((current) => [normalized, ...current]);
+        setSelectedProductId(normalized.id);
+        return;
+      } catch (error) {
+        setOrderMessage(error.message || "Could not create product on the server.");
+      }
+    }
+
+    const id = `mg69-admin-product-${Date.now()}`;
+    setCatalog((current) => [normalizeProduct({ ...draft, id }), ...current]);
     setSelectedProductId(id);
   }
 
@@ -438,6 +589,12 @@ function App() {
           : product
       )
     );
+
+    if (hasApi && isAdmin) {
+      updateProduct(productId, updates).catch((error) =>
+        setOrderMessage(error.message || "Could not save product changes to the server.")
+      );
+    }
   }
 
   function deleteAdminProduct(productId) {
@@ -449,9 +606,17 @@ function App() {
       }
       return nextProducts;
     });
+
+    if (hasApi && isAdmin) {
+      deleteProduct(productId).catch((error) =>
+        setOrderMessage(error.message || "Could not delete product on the server.")
+      );
+    }
   }
 
   function updateAdminStock(productId, size, delta) {
+    let persisted = null;
+
     setCatalog((current) =>
       current.map((product) => {
         if (product.id !== productId) return product;
@@ -459,14 +624,19 @@ function App() {
           ...product.sizeStock,
           [size]: Math.max(0, Number(product.sizeStock?.[size] || 0) + delta)
         };
-
-        return {
+        const nextProduct = {
           ...product,
           sizeStock: nextSizeStock,
           stock: Object.values(nextSizeStock).reduce((sum, count) => sum + Number(count || 0), 0)
         };
+        persisted = nextProduct;
+        return nextProduct;
       })
     );
+
+    if (hasApi && isAdmin && persisted) {
+      updateProduct(productId, { sizeStock: persisted.sizeStock, stock: persisted.stock }).catch(() => {});
+    }
   }
 
   function uploadAdminImage(productId, file) {
@@ -540,7 +710,7 @@ function App() {
     setCheckoutLoading(true);
 
     try {
-      await saveOrder(order).catch(() => null);
+      // The order is persisted server-side when the Stripe session is created.
       const session = await createCheckoutSession(cart, email, { address, customerName });
 
       if (session?.url) {
@@ -562,10 +732,17 @@ function App() {
       <div className="grain" aria-hidden="true" />
       <Header
         appMode={appMode}
+        authEnabled={hasApi}
         itemCount={itemCount}
+        onAccount={() => {
+          setAuthError("");
+          setAuthModalOpen(true);
+        }}
+        onLogout={handleLogout}
         onMenu={() => setDrawerOpen(true)}
         onMode={handleModeChange}
         route={routePath}
+        user={currentUser}
         wishlistCount={wishlist.length}
       />
       <AppDrawer
@@ -611,6 +788,13 @@ function App() {
                 onSelect={selectProduct}
               />
             )}
+            {routePath === "women" && (
+              <WomensCollectionLanding
+                products={catalog}
+                onAdd={addProductToCart}
+                onSelect={selectProduct}
+              />
+            )}
             <StorySections />
             <Shop
               products={filteredProducts}
@@ -651,6 +835,8 @@ function App() {
             />
             <OrderTracking cart={cart} order={lastOrder} />
             <AdminPanel
+              adminUnlocked={adminUnlocked}
+              authEnabled={hasApi}
               cart={cart}
               catalogStatus={catalogStatus}
               inventoryCount={inventoryCount}
@@ -658,8 +844,13 @@ function App() {
               onAddProduct={addAdminProduct}
               onDeleteProduct={deleteAdminProduct}
               onEditProduct={editAdminProduct}
+              onSignIn={() => {
+                setAuthError("");
+                setAuthModalOpen(true);
+              }}
               onStock={updateAdminStock}
               onUploadImage={uploadAdminImage}
+              orders={orders}
               products={catalog}
               subtotal={subtotal}
               wishlistCount={wishlist.length}
@@ -669,7 +860,154 @@ function App() {
       </main>
 
       <MobileNav itemCount={itemCount} onMenu={() => setDrawerOpen(true)} wishlistCount={wishlist.length} />
+      {hasApi && (
+        <AuthModal
+          busy={authBusy}
+          error={authError}
+          onClose={() => setAuthModalOpen(false)}
+          onSubmit={handleAuthSubmit}
+          open={authModalOpen}
+        />
+      )}
     </div>
+  );
+}
+
+function AuthModal({ busy, error, onClose, onSubmit, open }) {
+  const [mode, setMode] = useState("login");
+
+  function handleSubmit(event) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const payload = {
+      email: String(form.get("email") || "").trim(),
+      password: String(form.get("password") || "")
+    };
+    if (mode === "register") payload.name = String(form.get("name") || "").trim();
+    onSubmit(mode, payload);
+  }
+
+  const field = {
+    width: "100%",
+    background: "#111",
+    border: "1px solid #242424",
+    borderRadius: 6,
+    color: "#fff",
+    padding: "11px 12px",
+    fontSize: 14,
+    fontFamily: "inherit",
+    outline: "none"
+  };
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 10000,
+            background: "rgba(0,0,0,0.78)",
+            backdropFilter: "blur(6px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 20
+          }}
+        >
+          <motion.div
+            initial={{ opacity: 0, y: 24, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 24, scale: 0.97 }}
+            transition={{ duration: 0.24, ease: "easeOut" }}
+            onClick={(event) => event.stopPropagation()}
+            style={{
+              width: "min(94vw, 400px)",
+              background: "#0c0c0c",
+              border: "1px solid #1c1c1c",
+              borderRadius: 12,
+              padding: "28px 26px",
+              boxShadow: "0 30px 80px rgba(0,0,0,0.6)"
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18 }}>
+              <div>
+                <p style={{ fontSize: 10, letterSpacing: "0.18em", color: "#C9A84C", textTransform: "uppercase", margin: "0 0 6px" }}>
+                  MG69 Account
+                </p>
+                <h2 style={{ fontSize: 22, fontWeight: 800, margin: 0, color: "#fff", letterSpacing: "-0.01em" }}>
+                  {mode === "register" ? "Create account" : "Welcome back"}
+                </h2>
+              </div>
+              <button
+                onClick={onClose}
+                type="button"
+                aria-label="Close"
+                style={{ background: "none", border: "none", color: "#666", cursor: "pointer", padding: 4 }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {mode === "register" && (
+                <input name="name" placeholder="Full name" autoComplete="name" style={field} />
+              )}
+              <input name="email" type="email" placeholder="Email" autoComplete="email" required style={field} />
+              <input
+                name="password"
+                type="password"
+                placeholder={mode === "register" ? "Password (min 8 chars)" : "Password"}
+                autoComplete={mode === "register" ? "new-password" : "current-password"}
+                required
+                minLength={mode === "register" ? 8 : undefined}
+                style={field}
+              />
+
+              {error && (
+                <p style={{ color: "#ff6b6b", fontSize: 12.5, margin: 0, lineHeight: 1.5 }}>{error}</p>
+              )}
+
+              <button
+                type="submit"
+                disabled={busy}
+                style={{
+                  background: "#C9A84C",
+                  color: "#000",
+                  border: "none",
+                  borderRadius: 6,
+                  padding: "12px",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  letterSpacing: "0.08em",
+                  cursor: busy ? "default" : "pointer",
+                  opacity: busy ? 0.6 : 1,
+                  marginTop: 4,
+                  fontFamily: "inherit"
+                }}
+              >
+                {busy ? "Please wait…" : mode === "register" ? "Create account" : "Sign in"}
+              </button>
+            </form>
+
+            <p style={{ fontSize: 12.5, color: "#666", textAlign: "center", margin: "16px 0 0" }}>
+              {mode === "register" ? "Already have an account?" : "New to MG69?"}{" "}
+              <button
+                onClick={() => setMode(mode === "register" ? "login" : "register")}
+                type="button"
+                style={{ background: "none", border: "none", color: "#C9A84C", cursor: "pointer", fontSize: 12.5, fontFamily: "inherit", fontWeight: 600 }}
+              >
+                {mode === "register" ? "Sign in" : "Create one"}
+              </button>
+            </p>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
@@ -747,7 +1085,7 @@ function BrandReveal() {
   );
 }
 
-function Header({ appMode, itemCount, onMenu, onMode, route, wishlistCount }) {
+function Header({ appMode, authEnabled, itemCount, onAccount, onLogout, onMenu, onMode, route, user, wishlistCount }) {
   const links = appMode === "admin" ? adminLinks : customerLinks;
 
   return (
@@ -775,6 +1113,29 @@ function Header({ appMode, itemCount, onMenu, onMode, route, wishlistCount }) {
             Admin
           </button>
         </div>
+        {authEnabled &&
+          (user ? (
+            <div className="account-chip" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span
+                style={{
+                  fontSize: 12,
+                  color: "#C9A84C",
+                  fontWeight: 600,
+                  letterSpacing: "0.04em",
+                  whiteSpace: "nowrap"
+                }}
+              >
+                {user.name?.split(" ")[0] || "Account"}
+              </span>
+              <button className="icon-button" onClick={onLogout} type="button" aria-label="Sign out" title="Sign out">
+                <LogOut size={18} />
+              </button>
+            </div>
+          ) : (
+            <button className="icon-button" onClick={onAccount} type="button" aria-label="Sign in" title="Sign in">
+              <User />
+            </button>
+          ))}
         <a className="icon-button" href="#shop" aria-label="Search collection">
           <Search />
         </a>
@@ -1878,6 +2239,8 @@ function OrderTracking({ cart, order }) {
 }
 
 function AdminPanel({
+  adminUnlocked,
+  authEnabled,
   cart,
   catalogStatus,
   inventoryCount,
@@ -1885,14 +2248,19 @@ function AdminPanel({
   onAddProduct,
   onDeleteProduct,
   onEditProduct,
+  onSignIn,
   onStock,
   onUploadImage,
+  orders = [],
   products,
   subtotal,
   wishlistCount
 }) {
   const [selectedAdminId, setSelectedAdminId] = useState(products[0]?.id || "");
   const selectedAdminProduct = products.find((product) => product.id === selectedAdminId) || products[0];
+  const paidOrders = orders.filter((order) => order.status === "paid");
+  const ordersRevenue = orders.reduce((sum, order) => sum + Number(order.total || 0), 0);
+  const orderCountLabel = orders.length ? `${orders.length} orders` : lastOrder ? "1 draft" : "0 orders";
   const modules = [
     {
       id: "admin-dashboard",
@@ -1919,8 +2287,10 @@ function AdminPanel({
       id: "admin-orders",
       icon: ClipboardList,
       label: "Orders",
-      value: lastOrder ? "1 draft" : "0 drafts",
-      body: "Checkout saves an order draft locally and can post to the API when configured."
+      value: orderCountLabel,
+      body: orders.length
+        ? `${paidOrders.length} paid / ${money(ordersRevenue)} lifetime revenue`
+        : "Stripe checkouts and order drafts appear here once customers buy."
     },
     {
       id: "admin-customers",
@@ -1964,6 +2334,26 @@ function AdminPanel({
       setSelectedAdminId(products[0]?.id || "");
     }
   }, [products, selectedAdminId]);
+
+  if (authEnabled && !adminUnlocked) {
+    return (
+      <section className="admin-section" id="admin">
+        <div className="section-heading">
+          <p className="eyebrow">Admin interface</p>
+          <h2>Command dashboard</h2>
+          <span className="data-source-pill">Locked</span>
+        </div>
+        <div className="empty-panel" style={{ textAlign: "center" }}>
+          <Settings />
+          <h3>Admin access required</h3>
+          <p>Sign in with an admin account to manage products, inventory, and orders.</p>
+          <button className="primary-command compact" onClick={onSignIn} type="button" style={{ marginTop: 14 }}>
+            Sign in as admin
+          </button>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="admin-section" id="admin">
@@ -2093,13 +2483,56 @@ function AdminPanel({
               <div className="admin-orders-panel" id="admin-orders">
                 <div>
                   <p className="eyebrow">View Orders</p>
-                  <h3>{lastOrder ? lastOrder.orderNumber : "No orders yet"}</h3>
+                  <h3>{orders.length ? `${orders.length} orders / ${money(ordersRevenue)}` : lastOrder ? lastOrder.orderNumber : "No orders yet"}</h3>
                 </div>
-                <p>
-                  {lastOrder
-                    ? `${lastOrder.customerName} / ${money(lastOrder.total)} / ${lastOrder.items.length} items`
-                    : "Checkout drafts and Stripe paid orders will appear here once customers buy."}
-                </p>
+                {orders.length > 0 ? (
+                  <div className="admin-orders-list" style={{ display: "flex", flexDirection: "column", gap: 8, margin: "4px 0 12px" }}>
+                    {orders.slice(0, 6).map((order) => (
+                      <div
+                        key={order._id || order.stripeSessionId}
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          gap: 10,
+                          padding: "9px 12px",
+                          border: "1px solid #1c1c1c",
+                          borderRadius: 6,
+                          background: "#0d0d0d"
+                        }}
+                      >
+                        <div style={{ minWidth: 0 }}>
+                          <strong style={{ fontSize: 13, display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                            {order.customerName || "Guest"}
+                          </strong>
+                          <span style={{ fontSize: 11, color: "#777" }}>
+                            {order.email || "—"} · {order.items?.length || 0} items
+                          </span>
+                        </div>
+                        <div style={{ textAlign: "right", flexShrink: 0 }}>
+                          <strong style={{ fontSize: 13, color: "#C9A84C" }}>{money(Number(order.total || 0))}</strong>
+                          <span
+                            style={{
+                              display: "block",
+                              fontSize: 10,
+                              letterSpacing: "0.06em",
+                              textTransform: "uppercase",
+                              color: order.status === "paid" ? "#4caf7d" : "#b9883a"
+                            }}
+                          >
+                            {order.status || "pending"}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p>
+                    {lastOrder
+                      ? `${lastOrder.customerName} / ${money(lastOrder.total)} / ${lastOrder.items.length} items (local draft)`
+                      : "Stripe paid orders and drafts will appear here once customers buy."}
+                  </p>
+                )}
                 <a className="secondary-command" href="#orders">Open Order Tracking</a>
               </div>
             </div>

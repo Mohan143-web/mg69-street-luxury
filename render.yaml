@@ -1,0 +1,35 @@
+# Render Blueprint for the MG69 API.
+# Deploy: push to GitHub, then in Render → "New +" → "Blueprint" and select this repo.
+# Set the `sync: false` secrets in the Render dashboard after the service is created.
+services:
+  - type: web
+    name: mg69-api
+    runtime: node
+    rootDir: server
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Render generates a strong random JWT signing secret.
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      # Comma-separated allowed origins (your GitHub Pages site).
+      - key: CLIENT_URL
+        value: https://mohan143-web.github.io/mg69-street-luxury
+      # Set these in the dashboard (Environment tab). Without MONGODB_URI the API
+      # runs on an in-memory store that resets when the free instance sleeps.
+      - key: MONGODB_URI
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false

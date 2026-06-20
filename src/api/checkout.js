@@ -1,4 +1,7 @@
-const API = import.meta.env.VITE_API_URL?.replace(/\/$/, "") || "http://localhost:8080";
+// Empty when no API is configured. These functions are only invoked once an API
+// is wired (the storefront guards on it), so the production bundle ships no
+// hardcoded localhost fallback.
+const API = import.meta.env.VITE_API_URL?.replace(/\/$/, "") || "";
 
 export async function createCheckoutSession(cartItems, email, customer = {}) {
   const items = cartItems.map((item) => ({

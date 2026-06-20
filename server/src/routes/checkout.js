@@ -1,7 +1,6 @@
 import express from "express";
-import mongoose from "mongoose";
 import Stripe from "stripe";
-import { Order } from "../models/Order.js";
+import { ordersRepo } from "../store.js";
 
 const router = express.Router();
 
@@ -81,6 +80,20 @@ router.post("/session", async (request, response) => {
       cancel_url: `${clientUrl}/#checkout`
     });
 
+    // Persist the authoritative order up front; the webhook flips it to "paid".
+    const total = metadataItems.reduce((sum, item) => sum + Number(item.price) * Number(item.quantity), 0);
+    await ordersRepo
+      .create({
+        customerName: customerName || "Guest",
+        email: email || "",
+        address: address || "",
+        items: metadataItems,
+        total,
+        stripeSessionId: session.id,
+        status: "pending-payment"
+      })
+      .catch((error) => console.error("Order pre-create error:", error));
+
     response.json({ sessionId: session.id, url: session.url });
   } catch (error) {
     console.error("Stripe session error:", error);
@@ -107,7 +120,8 @@ router.get("/session/:id", async (request, response) => {
   }
 });
 
-router.post("/webhook", express.raw({ type: "application/json" }), async (request, response) => {
+// Raw body for signature verification is applied globally in index.js for this path.
+router.post("/webhook", async (request, response) => {
   const stripe = getStripe();
 
   if (!stripe) {
@@ -131,16 +145,23 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (reques
 
     try {
       const items = JSON.parse(session.metadata?.items || "[]");
+      const paidFields = {
+        status: "paid",
+        email: session.customer_details?.email || session.metadata?.email || "",
+        total: (session.amount_total || 0) / 100
+      };
 
-      if (mongoose.connection.readyState === 1) {
-        await Order.create({
-          address: session.metadata?.address || session.customer_details?.address || "",
+      // Flip the pre-created order to "paid"; create one if it is somehow missing.
+      const updated = await ordersRepo.updateByStripeSession(session.id, paidFields);
+      if (!updated) {
+        await ordersRepo.create({
+          address: session.metadata?.address || "",
           customerName: session.metadata?.customerName || session.customer_details?.name || "Guest",
-          email: session.customer_details?.email || "",
+          email: paidFields.email,
           items,
           status: "paid",
           stripeSessionId: session.id,
-          total: (session.amount_total || 0) / 100
+          total: paidFields.total
         });
       }
     } catch (error) {

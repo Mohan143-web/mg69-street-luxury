@@ -20,7 +20,7 @@ const orderSchema = new mongoose.Schema(
     address: mongoose.Schema.Types.Mixed,
     items: [orderItemSchema],
     total: { type: Number, required: true },
-    stripeSessionId: String,
+    stripeSessionId: { type: String, unique: true, sparse: true },
     status: {
       type: String,
       enum: ["draft", "pending-payment", "paid", "fulfilled", "cancelled"],

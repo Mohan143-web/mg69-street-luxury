@@ -3,9 +3,11 @@ import mongoose from "mongoose";
 const userSchema = new mongoose.Schema(
   {
     name: String,
-    email: { type: String, required: true, unique: true },
+    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+    passwordHash: { type: String, required: true, select: false },
+    role: { type: String, enum: ["customer", "admin"], default: "customer" },
     authProviderId: String,
-    wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: "Product" }]
+    wishlist: [{ type: String }]
   },
   { timestamps: true }
 );

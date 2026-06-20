@@ -1,14 +1,15 @@
 import cors from "cors";
 import "dotenv/config";
 import express from "express";
-import { fallbackProducts } from "./data/fallbackProducts.js";
+import { attachUser, ensureAdminUser } from "./auth.js";
 import { connectDatabase } from "./db.js";
-import { Order } from "./models/Order.js";
-import { Product } from "./models/Product.js";
+import { dbConnected } from "./store.js";
+import authRouter from "./routes/auth.js";
 import checkoutRouter from "./routes/checkout.js";
+import ordersRouter from "./routes/orders.js";
+import productsRouter from "./routes/products.js";
 
 const app = express();
-const hasDatabase = Boolean(process.env.MONGODB_URI);
 
 function normalizeOrigin(value) {
   try {
@@ -24,101 +25,52 @@ const allowedOrigins = (process.env.CLIENT_URL || "https://mohan143-web.github.i
   .filter(Boolean)
   .map(normalizeOrigin);
 
+const isDevEnv = process.env.NODE_ENV !== "production";
+
+function isAllowedOrigin(origin) {
+  if (!origin) return true;
+  if (allowedOrigins.includes(origin)) return true;
+  // In development, allow any localhost / 127.0.0.1 origin regardless of port.
+  if (isDevEnv && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return true;
+  return false;
+}
+
 app.use(
   cors({
+    // Return false (not an error) for disallowed origins so preflights don't 500.
     origin(origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-        return;
-      }
-
-      callback(new Error("Origin not allowed by MG69 CORS policy."));
+      callback(null, isAllowedOrigin(origin));
     }
   })
 );
+
+// Stripe webhook needs the raw body for signature verification — register before express.json().
 app.use("/api/checkout/webhook", express.raw({ type: "application/json" }));
 app.use(express.json());
+app.use(attachUser);
 
 app.get("/api/health", (_request, response) => {
-  response.json({ ok: true, service: "mg69-api" });
+  response.json({ ok: true, service: "mg69-api", database: dbConnected() ? "mongodb" : "in-memory" });
 });
 
-app.get("/api/products", async (request, response) => {
-  const { category, collection } = request.query;
-  const filter = { active: true };
-
-  if (category && category !== "All") filter.category = category;
-  if (collection && collection !== "All") filter.collection = collection;
-
-  if (!hasDatabase) {
-    const products = fallbackProducts.filter((product) => {
-      const categoryMatch = !filter.category || product.category === filter.category;
-      const collectionMatch = !filter.collection || product.collection === filter.collection;
-      return product.active && categoryMatch && collectionMatch;
-    });
-    response.json(products);
-    return;
-  }
-
-  const products = await Product.find(filter).sort({ createdAt: -1 });
-  response.json(products);
-});
-
-app.post("/api/orders", async (request, response) => {
-  if (!hasDatabase) {
-    response.status(202).json({
-      ...request.body,
-      id: `local-${Date.now()}`,
-      status: "pending-payment"
-    });
-    return;
-  }
-
-  const order = await Order.create({
-    ...request.body,
-    status: "pending-payment"
-  });
-
-  response.status(201).json(order);
-});
-
+app.use("/api/auth", authRouter);
+app.use("/api/products", productsRouter);
+app.use("/api/orders", ordersRouter);
 app.use("/api/checkout", checkoutRouter);
 
-app.post("/api/products/seed", async (_request, response) => {
-  if (process.env.NODE_ENV === "production") {
-    response.status(403).json({ error: "Product seeding is disabled in production." });
-    return;
-  }
-
-  if (!hasDatabase) {
-    response.status(503).json({ error: "MongoDB is not configured. Set MONGODB_URI before seeding products." });
-    return;
-  }
-
-  const existingCount = await Product.countDocuments({});
-
-  if (existingCount > 0 && process.env.ALLOW_RESEED !== "true") {
-    response.status(409).json({
-      error: "Products already exist. Set ALLOW_RESEED=true locally to replace the catalog.",
-      count: existingCount
-    });
-    return;
-  }
-
-  if (process.env.ALLOW_RESEED === "true") {
-    await Product.deleteMany({});
-  }
-
-  const products = await Product.insertMany(fallbackProducts);
-  response.status(201).json({ count: products.length });
+// Centralized error handler so thrown errors return JSON, not stack traces.
+app.use((error, _request, response, _next) => {
+  console.error("Unhandled API error:", error);
+  response.status(500).json({ error: "Internal server error." });
 });
 
 const port = process.env.PORT || 8080;
 
 connectDatabase()
-  .then(() => {
+  .then(async () => {
+    await ensureAdminUser();
     app.listen(port, () => {
-      console.log(`MG69 API listening on http://localhost:${port}`);
+      console.log(`MG69 API listening on http://localhost:${port} (${dbConnected() ? "MongoDB" : "in-memory"} store)`);
     });
   })
   .catch((error) => {

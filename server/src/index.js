@@ -3,7 +3,7 @@ import "dotenv/config";
 import express from "express";
 import { attachUser, ensureAdminUser } from "./auth.js";
 import { connectDatabase } from "./db.js";
-import { dbConnected } from "./store.js";
+import { dbConnected, ensureProductsSeeded } from "./store.js";
 import authRouter from "./routes/auth.js";
 import checkoutRouter from "./routes/checkout.js";
 import ordersRouter from "./routes/orders.js";
@@ -69,6 +69,7 @@ const port = process.env.PORT || 8080;
 connectDatabase()
   .then(async () => {
     await ensureAdminUser();
+    await ensureProductsSeeded();
     app.listen(port, () => {
       console.log(`MG69 API listening on http://localhost:${port} (${dbConnected() ? "MongoDB" : "in-memory"} store)`);
     });

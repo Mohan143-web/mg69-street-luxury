@@ -226,3 +226,16 @@ export const ordersRepo = {
     return order;
   }
 };
+
+/**
+ * On startup, seed the bundled MG69 catalog into MongoDB if (and only if) the
+ * products collection is empty. The in-memory store is already seeded, so this
+ * is a no-op there. Never overwrites an existing catalog.
+ */
+export async function ensureProductsSeeded() {
+  if (!dbConnected()) return;
+  const count = await Product.countDocuments({});
+  if (count > 0) return;
+  await Product.insertMany(fallbackProducts);
+  console.log(`✅ Seeded ${fallbackProducts.length} products into MongoDB`);
+}

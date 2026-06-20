@@ -1304,195 +1304,129 @@ function ModeDashboard({
   );
 }
 
+const fxParticles = [
+  { x: "10%", y: "26%", s: "3px", d: "5s", delay: "0s" },
+  { x: "20%", y: "70%", s: "2px", d: "6.5s", delay: "0.7s" },
+  { x: "32%", y: "16%", s: "2px", d: "5.6s", delay: "1.3s" },
+  { x: "46%", y: "82%", s: "3px", d: "7s", delay: "0.4s" },
+  { x: "62%", y: "22%", s: "2px", d: "6s", delay: "1.6s" },
+  { x: "73%", y: "66%", s: "3px", d: "5.4s", delay: "0.2s" },
+  { x: "84%", y: "30%", s: "2px", d: "6.8s", delay: "1.1s" },
+  { x: "90%", y: "76%", s: "3px", d: "5.2s", delay: "0.9s" },
+  { x: "54%", y: "12%", s: "2px", d: "7.2s", delay: "1.8s" }
+];
+const fxStage = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.12, delayChildren: 0.15 } }
+};
+const fxItem = {
+  hidden: { opacity: 0, y: 26 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] } }
+};
+const fxTicker = ["MG69 Street Luxury", "Drop 001 — Live Now", "Utility Collection", "Designed for the Bold", "Free Worldwide Shipping"];
+
 function Hero() {
   const [pointer, setPointer] = useState({ x: 0, y: 0 });
+  const featured = products[0];
 
   function handlePointerMove(event) {
     const bounds = event.currentTarget.getBoundingClientRect();
-    const x = ((event.clientX - bounds.left) / bounds.width - 0.5) * 2;
-    const y = ((event.clientY - bounds.top) / bounds.height - 0.5) * 2;
-
-    setPointer({ x, y });
+    setPointer({
+      x: ((event.clientX - bounds.left) / bounds.width - 0.5) * 2,
+      y: ((event.clientY - bounds.top) / bounds.height - 0.5) * 2
+    });
   }
 
   const heroPointerStyle = {
-    "--hero-tilt-x": `${pointer.y * -7}deg`,
-    "--hero-tilt-y": `${pointer.x * 9}deg`,
-    "--hero-shift-x": `${pointer.x * 12}px`,
-    "--hero-shift-y": `${pointer.y * 10}px`,
-    "--reflection-x": `${50 + pointer.x * 18}%`,
-    "--reflection-y": `${42 + pointer.y * 12}%`,
-    "--reflection-shift-x": `${pointer.x * -6}px`,
-    "--reflection-shift-y": `${pointer.y * -5}px`,
-    "--orbit-shift-x": `${pointer.x * -6}px`,
-    "--orbit-shift-y": `${pointer.y * -5}px`,
-    "--particle-drift-x": `${pointer.x * 10}px`,
-    "--particle-drift-y": `${pointer.y * 8}px`
+    "--fx-px": `${pointer.x * 9}px`,
+    "--fx-py": `${pointer.y * 9}px`
   };
 
   return (
     <section
-      className="hero"
+      className="fx-hero"
       id="home"
       onPointerLeave={() => setPointer({ x: 0, y: 0 })}
       onPointerMove={handlePointerMove}
       style={heroPointerStyle}
     >
-      <ProductImage
-        className="hero-campaign-poster utility-hero-poster"
-        alt="MG69 Utility Collection campaign model"
-        fetchPriority="high"
-        image={utilityCampaignImages.hero}
-        loading="eager"
-      />
-      <div className="hero-poster-shade" aria-hidden="true" />
-      <div className="hero-cream-field" aria-hidden="true" />
-      <div className="hero-gold-beam" aria-hidden="true" />
-      <div className="hero-smoke-field" aria-hidden="true" />
-      <div className="hero-motion-layer" aria-hidden="true">
-        <span className="motion-beam beam-one" />
-        <span className="motion-beam beam-two" />
-        <span className="motion-beam beam-three" />
+      <div className="fx-layer fx-aurora" aria-hidden="true" />
+      <div className="fx-layer fx-grid" aria-hidden="true" />
+      <div className="fx-layer fx-scan" aria-hidden="true" />
+      <div className="fx-layer fx-stars" aria-hidden="true">
+        {fxParticles.map((p) => (
+          <span
+            key={`${p.x}-${p.y}`}
+            style={{ "--x": p.x, "--y": p.y, "--s": p.s, "--d": p.d, "--delay": p.delay }}
+          />
+        ))}
       </div>
-      <motion.div
-        className="hero-content hero-layout"
-        initial={{ opacity: 0, y: 32 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, ease: "easeOut" }}
-      >
-        <motion.div
-          className="hero-copy"
-          initial={{ opacity: 0, y: 26 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.28, duration: 0.78, ease: "easeOut" }}
-        >
-          <motion.p
-            className="eyebrow"
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.56, duration: 0.58, ease: "easeOut" }}
-          >
-            MG69 / Utility Collection
-          </motion.p>
-          <h1>
-            <span>MG69 Utility</span>
-            <span>Premium Streetwear Collection</span>
-          </h1>
-          <motion.p
-            className="hero-line"
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.72, duration: 0.58, ease: "easeOut" }}
-          >
-            Premium oversized utility pieces built for comfort, confidence, and luxury streetwear styling.
-          </motion.p>
-          <motion.div
-            className="hero-actions"
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.92, duration: 0.58, ease: "easeOut" }}
-          >
-            <a className="primary-command hero-command" href="#shop">Shop Collection</a>
-            <a className="secondary-command" href="#lookbook">View lookbook</a>
-          </motion.div>
-          <motion.div
-            className="hero-stat-row"
-            aria-label="MG69 brand pillars"
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.08, duration: 0.55, ease: "easeOut" }}
-          >
-            <span>Designed for the Bold</span>
-            <span>Luxury Detail</span>
-            <span>Streetwear Elevated</span>
-          </motion.div>
-          <motion.a
-            className="hero-feature-piece"
-            href="#product"
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.2, duration: 0.55, ease: "easeOut" }}
-          >
-            <ProductImage
-              alt={`${products[0].name} featured product`}
-              fetchPriority="high"
-              image={products[0].images?.[0] || products[0].image}
-              loading="eager"
-            />
-            <span>MG69 Utility Collection</span>
-            <strong>{products[0].name}</strong>
-          </motion.a>
+      <div className="fx-layer fx-vignette" aria-hidden="true" />
+      <div className="fx-layer fx-grain" aria-hidden="true" />
+
+      <motion.div className="fx-stage" variants={fxStage} initial="hidden" animate="show">
+        <motion.span className="fx-kicker" variants={fxItem}>Est. MMXXV · Street Luxury</motion.span>
+
+        <motion.div className="fx-emblem" variants={fxItem}>
+          <span className="fx-halo" aria-hidden="true" />
+          <span className="fx-glow" aria-hidden="true" />
+          <span className="fx-orbit o1" aria-hidden="true" />
+          <span className="fx-orbit o2" aria-hidden="true" />
+          <motion.img
+            src={brandLogo}
+            alt="MG69 emblem"
+            width="1254"
+            height="1254"
+            animate={{ y: [0, -10, 0] }}
+            transition={{ duration: 6, ease: "easeInOut", repeat: Infinity }}
+          />
+          <span className="fx-reflection" aria-hidden="true" style={{ backgroundImage: `url(${brandLogo})` }} />
         </motion.div>
-        <div className="hero-visual">
-          <div className="logo-orbit-field" aria-hidden="true">
-            <span className="orbital-line orbit-one" />
-            <span className="orbital-line orbit-two" />
-            <span className="orbital-line orbit-three" />
-          </div>
-          <motion.div
-            className="logo-stage-motion"
-            animate={{ y: [0, -8, 0], rotate: [0, 0.35, 0] }}
-            transition={{ duration: 7.5, ease: "easeInOut", repeat: Infinity }}
-          >
-            <div className="logo-stage campaign-model-stage">
-              <div className="logo-smoke" aria-hidden="true" />
-              <div className="logo-aura" aria-hidden="true" />
-              <div className="logo-glass-reflection" aria-hidden="true" />
-              <div className="logo-ring-field" aria-hidden="true">
-                <span />
-                <span />
-              </div>
-              <div className="particle-field" aria-hidden="true">
-                {logoParticles.map((particle) => (
-                  <span
-                    key={`${particle.x}-${particle.y}`}
-                    style={{
-                      "--particle-delay": particle.delay,
-                      "--particle-size": particle.size,
-                      "--particle-x": particle.x,
-                      "--particle-y": particle.y
-                    }}
-                  />
-                ))}
-              </div>
-              <ProductImage
-                className="hero-logo hero-model-visual"
-                alt="MG69 Utility Collection campaign model"
-                fetchPriority="high"
-                image={utilityCampaignImages.hero}
-                loading="eager"
-              />
-              <img
-                className="hero-logo-badge"
-                alt="MG69 gold logo"
-                src={brandLogo}
-                width="1254"
-                height="1254"
-              />
-            </div>
-          </motion.div>
-          <motion.a
-            className="floating-product-card"
-            href="#product"
-            animate={{ y: [0, -12, 0], x: [0, 5, 0] }}
-            transition={{ duration: 6.8, ease: "easeInOut", repeat: Infinity }}
-          >
-            <ProductImage
-              alt={`${products[0].name} floating product preview`}
-              fetchPriority="high"
-              image={products[0].images?.[0] || products[0].image}
-              loading="eager"
-            />
-            <span>Utility Set</span>
-            <strong>{money(products[0].price)}</strong>
-            <small>
-              <i>M</i>
-              <i>L</i>
-              <i>XL</i>
-            </small>
-          </motion.a>
-        </div>
+
+        <motion.h1 className="fx-title" variants={fxItem}>
+          <span className="fx-mark">MG69</span>
+          <span className="fx-sub">Street Luxury</span>
+        </motion.h1>
+
+        <motion.p className="fx-tagline" variants={fxItem}>
+          Premium oversized utility silhouettes — engineered for comfort, confidence, and a future-facing
+          streetwear standard.
+        </motion.p>
+
+        <motion.div className="fx-cta" variants={fxItem}>
+          <a className="fx-btn fx-btn-primary" href="#shop">Enter the Drop →</a>
+          <a className="fx-btn fx-btn-ghost" href="#lookbook">View Lookbook</a>
+        </motion.div>
+
+        <motion.div className="fx-pillars" variants={fxItem} aria-label="MG69 brand pillars">
+          <span>Designed for the Bold</span>
+          <span>Luxury Detail</span>
+          <span>Streetwear Elevated</span>
+        </motion.div>
       </motion.div>
+
+      <motion.a
+        className="fx-spec"
+        href="#product"
+        initial={{ opacity: 0, y: 28 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 1.05, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+      >
+        <ProductImage alt={`${featured.name} featured drop`} image={featured.images?.[0] || featured.image} />
+        <span className="fx-spec-body">
+          <span className="fx-spec-tag">Featured Drop</span>
+          <span className="fx-spec-name">{featured.name}</span>
+          <span className="fx-spec-price">{money(featured.price)}</span>
+        </span>
+      </motion.a>
+
+      <div className="fx-ticker" aria-hidden="true">
+        <div className="fx-ticker-track">
+          {fxTicker.concat(fxTicker).map((word, index) => (
+            <span key={`${word}-${index}`}>{word}</span>
+          ))}
+        </div>
+      </div>
     </section>
   );
 }

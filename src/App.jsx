@@ -30,13 +30,12 @@ import { useEffect, useMemo, useState } from "react";
 import { createCheckoutSession } from "./api/checkout.js";
 import MensCollectionLanding from "./components/MensCollectionLanding.jsx";
 import WomensCollectionLanding from "./components/WomensCollectionLanding.jsx";
-import { categories, collections, products, utilityCampaignImages } from "./data/products.js";
+import { categories, collections } from "./data/products.js";
 import {
   createProduct,
   deleteProduct,
   fetchMe,
   fetchOrders,
-  fetchProducts,
   getToken,
   hasApi,
   loginUser,
@@ -49,14 +48,41 @@ import OrderConfirmed from "./pages/OrderConfirmed.jsx";
 
 const money = (value) => `$${value.toFixed(2)}`;
 const previewImage = `${import.meta.env.BASE_URL}og-preview.png`;
-const brandLogo = `${import.meta.env.BASE_URL}brand/mg69-logo3.png`;
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const fallbackImage = products[0].image;
 const BASE_URL = import.meta.env.BASE_URL;
 const privilegedRoles = new Set(["admin", "owner", "access-member", "access_member"]);
+const defaultSizes = ["S", "M", "L", "XL", "XXL"];
+const defaultColors = [
+  { name: "Matte Black", hex: "#080807" },
+  { name: "Cream", hex: "#efebe0" },
+  { name: "Gold", hex: "#C9A84C" }
+];
+const uploadAngleLabels = [
+  "Front View",
+  "Back View",
+  "Left Side View",
+  "Right Side View",
+  "Model Front View",
+  "Model Back View",
+  "Flat Lay Front",
+  "Flat Lay Back",
+  "Fabric Close-Up",
+  "Logo Detail",
+  "Pocket Detail",
+  "Lifestyle Shot"
+];
 
 function canManageApp(user) {
   return privilegedRoles.has(String(user?.role || "").toLowerCase());
+}
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.addEventListener("load", () => resolve(reader.result));
+    reader.addEventListener("error", () => reject(reader.error));
+    reader.readAsDataURL(file);
+  });
 }
 
 // API-served products use root-relative asset paths (e.g. "/products/x.png").
@@ -192,6 +218,14 @@ function getImageSize(image = "") {
 
 function ProductImage({ image, alt, className = "", fetchPriority, loading = "lazy", sizes }) {
   const imageData = typeof image === "string" ? { src: image } : image;
+  if (!imageData?.src) {
+    return (
+      <div className={`product-image-placeholder ${className}`.trim()} role="img" aria-label={alt}>
+        <span>MG69</span>
+        <small>No image</small>
+      </div>
+    );
+  }
   const dimensions = getImageSize(imageData);
 
   return (
@@ -221,18 +255,20 @@ function normalizeColorVariant(variant) {
 }
 
 function normalizeProduct(product) {
-  const image = withBase(product.image || product.imageUrl || product.images?.[0]?.src || fallbackImage);
-  const sizes = product.sizes?.length ? product.sizes : ["S", "M", "L"];
-  const stock = product.stock || 0;
+  const primaryImage = product.image || product.imageUrl || product.images?.[0]?.src || "";
+  const image = primaryImage ? withBase(primaryImage) : "";
+  const sizes = product.sizes?.length ? product.sizes : defaultSizes;
+  const stock = Number(product.stock || 0);
 
   return {
     ...product,
     id: String(product.id || product._id || ""),
+    price: Number(product.price || 0),
     colors: (product.colors?.length ? product.colors : [{ name: "Matte Black", hex: "#080807" }]).map((color) =>
       typeof color === "string" ? { name: color, hex: "#080807" } : color
     ),
     image,
-    images: (product.images?.length ? product.images : [{ label: "Front", src: image }]).map(normalizeImage),
+    images: (product.images?.length ? product.images : []).map(normalizeImage),
     colorVariants: product.colorVariants?.map(normalizeColorVariant),
     sizes,
     sizeStock: buildSizeStock(sizes, stock, product.sizeStock),
@@ -253,14 +289,14 @@ function usePersistentState(key, fallback) {
 }
 
 function App() {
-  const [catalog, setCatalog] = useState(products);
-  const [catalogStatus, setCatalogStatus] = useState(hasApi ? "connecting" : "local");
+  const [catalog, setCatalog] = usePersistentState("mg69-admin-catalog", []);
+  const [catalogStatus, setCatalogStatus] = useState(hasApi ? "admin-managed" : "local");
   const [activeCategory, setActiveCategory] = useState("All");
   const [activeCollection, setActiveCollection] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedProductId, setSelectedProductId] = useState(products[0].id);
-  const [selectedSize, setSelectedSize] = useState(products[0].sizes[1]);
-  const [selectedColor, setSelectedColor] = useState(products[0].colors[0].name);
+  const [selectedProductId, setSelectedProductId] = useState("");
+  const [selectedSize, setSelectedSize] = useState("M");
+  const [selectedColor, setSelectedColor] = useState("Matte Black");
   const [selectedQuantity, setSelectedQuantity] = useState(1);
   const [cart, setCart] = usePersistentState("mg69-cart", []);
   const [wishlist, setWishlist] = usePersistentState("mg69-wishlist", []);
@@ -282,13 +318,14 @@ function App() {
   const adminUnlocked = isAdmin;
   const visibleAppMode = adminUnlocked && appMode === "admin" ? "admin" : "customer";
 
-  const selectedProduct = catalog.find((product) => product.id === selectedProductId) || catalog[0] || products[0];
-  const selectedSizeStock = getSizeStock(selectedProduct, selectedSize);
+  const selectedProduct = catalog.find((product) => product.id === selectedProductId) || catalog[0] || null;
+  const selectedSizeStock = selectedProduct ? getSizeStock(selectedProduct, selectedSize) : 0;
   const wishlistProducts = useMemo(
     () => catalog.filter((product) => wishlist.includes(product.id)),
     [catalog, wishlist]
   );
   const relatedProducts = useMemo(() => {
+    if (!selectedProduct) return [];
     const explicitRelated = selectedProduct.relatedIds?.length
       ? selectedProduct.relatedIds
           .map((id) => catalog.find((product) => product.id === id))
@@ -306,12 +343,15 @@ function App() {
   }, [catalog, selectedProduct]);
   const recentlyViewedProducts = useMemo(
     () =>
+      !selectedProduct
+        ? []
+        :
       recentlyViewed
         .filter((id) => id !== selectedProduct.id)
         .map((id) => catalog.find((product) => product.id === id))
         .filter(Boolean)
         .slice(0, 4),
-    [catalog, recentlyViewed, selectedProduct.id]
+    [catalog, recentlyViewed, selectedProduct?.id]
   );
 
   const filteredProducts = useMemo(() => {
@@ -340,6 +380,7 @@ function App() {
   const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const inventoryCount = catalog.reduce((sum, product) => sum + product.stock, 0);
   const isOrderConfirmed = routePath === "order-confirmed";
+  const shouldShowCommerceSections = routePath !== "home" || Boolean(searchQuery.trim());
 
   useEffect(() => {
     const handleHash = () => setRoute(window.location.hash.replace("#", "") || "home");
@@ -348,28 +389,8 @@ function App() {
   }, []);
 
   useEffect(() => {
-    let isMounted = true;
-
-    async function loadCatalog() {
-      if (!hasApi) return;
-
-      try {
-        const apiProducts = await fetchProducts();
-        if (!isMounted || !apiProducts?.length) return;
-        const normalizedProducts = apiProducts.map(normalizeProduct);
-        setCatalog(normalizedProducts);
-        setSelectedProductId(normalizedProducts[0].id);
-        setCatalogStatus("database");
-      } catch {
-        if (isMounted) setCatalogStatus("local");
-      }
-    }
-
-    loadCatalog();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+    setCatalog((current) => current.map(normalizeProduct));
+  }, [setCatalog]);
 
   // Validate a stored session on load; drop it if the token is rejected/expired.
   useEffect(() => {
@@ -481,26 +502,30 @@ function App() {
   }
 
   useEffect(() => {
+    if (!selectedProduct) return;
     const nextSize = selectedProduct.sizes.find((size) => getSizeStock(selectedProduct, size) > 0) || selectedProduct.sizes[0];
     setSelectedSize(nextSize);
     setSelectedColor(selectedProduct.colors[0].name);
     setSelectedQuantity(1);
-  }, [selectedProduct.id]);
+  }, [selectedProduct?.id]);
 
   useEffect(() => {
+    if (!selectedProduct) return;
     setRecentlyViewed((current) => [selectedProduct.id, ...current.filter((id) => id !== selectedProduct.id)].slice(0, 6));
-  }, [selectedProduct.id, setRecentlyViewed]);
+  }, [selectedProduct?.id, setRecentlyViewed]);
 
   useEffect(() => {
     setSelectedQuantity((quantity) => Math.min(Math.max(1, quantity), Math.max(1, selectedSizeStock)));
   }, [selectedSizeStock]);
 
   function selectProduct(product) {
+    if (!product) return;
     setSelectedProductId(product.id);
     window.location.hash = "product";
   }
 
   function addProductToCart(product, size, color, quantity = 1) {
+    if (!product) return;
     const availableStock = getSizeStock(product, size);
     if (availableStock <= 0) return;
 
@@ -538,10 +563,12 @@ function App() {
   }
 
   function addToCart() {
+    if (!selectedProduct) return;
     addProductToCart(selectedProduct, selectedSize, selectedColor, selectedQuantity);
   }
 
   function buyNow() {
+    if (!selectedProduct) return;
     addToCart();
     window.location.hash = "checkout";
     window.requestAnimationFrame(() => {
@@ -550,24 +577,25 @@ function App() {
   }
 
   async function addAdminProduct() {
-    const template = catalog.find((product) => product.id === "mg69-utility-set") || catalog[0];
+    const newProductId = `mg69-admin-product-${Date.now()}`;
     const draft = {
-      name: "New MG69 Utility Product",
-      price: 169,
-      stock: 125,
-      category: template?.category || "Men",
-      collection: template?.collection || "MG69 Utility Collection",
-      type: template?.type,
-      sizes: template?.sizes || ["S", "M", "L", "XL", "XXL"],
-      sizeStock: { S: 25, M: 25, L: 25, XL: 25, XXL: 25 },
-      colors: template?.colors,
-      colorVariants: template?.colorVariants,
-      image: template?.image,
-      images: template?.images,
-      tagline: template?.tagline,
-      description: template?.description,
-      specs: template?.specs,
-      tags: [...(template?.tags || []), "Admin Added"]
+      id: newProductId,
+      name: "New MG69 Product",
+      price: 0,
+      stock: 0,
+      category: "Men",
+      collection: "Admin Inventory",
+      type: "Draft Product",
+      sizes: defaultSizes,
+      sizeStock: Object.fromEntries(defaultSizes.map((size) => [size, 0])),
+      colors: defaultColors,
+      colorVariants: [],
+      image: "",
+      images: [],
+      tagline: "Add product details, images, sizes, and stock.",
+      description: "Draft product created from the MG69 admin inventory dashboard.",
+      specs: { Status: "Draft", Inventory: "0 units" },
+      tags: ["Admin Added", "Draft"]
     };
 
     if (hasApi && isAdmin) {
@@ -582,9 +610,8 @@ function App() {
       }
     }
 
-    const id = `mg69-admin-product-${Date.now()}`;
-    setCatalog((current) => [normalizeProduct({ ...draft, id }), ...current]);
-    setSelectedProductId(id);
+    setCatalog((current) => [normalizeProduct(draft), ...current]);
+    setSelectedProductId(newProductId);
   }
 
   function editAdminProduct(productId, updates) {
@@ -610,10 +637,11 @@ function App() {
 
   function deleteAdminProduct(productId) {
     setCatalog((current) => {
-      if (current.length <= 1) return current;
       const nextProducts = current.filter((product) => product.id !== productId);
       if (selectedProductId === productId && nextProducts[0]) {
         setSelectedProductId(nextProducts[0].id);
+      } else if (selectedProductId === productId) {
+        setSelectedProductId("");
       }
       return nextProducts;
     });
@@ -650,21 +678,43 @@ function App() {
     }
   }
 
-  function uploadAdminImage(productId, file) {
-    if (!file) return;
-    const imageUrl = URL.createObjectURL(file);
+  async function uploadAdminImage(productId, fileList) {
+    const files = Array.from(fileList || []).filter((file) => file?.type?.startsWith("image/"));
+    if (!files.length) return;
 
-    setCatalog((current) =>
-      current.map((product) =>
-        product.id === productId
-          ? {
-              ...product,
-              image: imageUrl,
-              images: [{ label: "Uploaded Image", src: imageUrl }, ...(product.images || [])]
-            }
-          : product
-      )
-    );
+    try {
+      const uploadedImages = await Promise.all(
+        files.map(async (file, index) => ({
+          label: uploadAngleLabels[index] || `Angle ${index + 1}`,
+          src: await readFileAsDataUrl(file),
+          width: 1200,
+          height: 1600
+        }))
+      );
+      let persisted = null;
+
+      setCatalog((current) =>
+        current.map((product) => {
+          if (product.id !== productId) return product;
+          const images = [...uploadedImages, ...(product.images || [])];
+          const nextProduct = normalizeProduct({
+            ...product,
+            image: images[0]?.src || product.image,
+            images
+          });
+          persisted = nextProduct;
+          return nextProduct;
+        })
+      );
+
+      if (hasApi && isAdmin && persisted) {
+        updateProduct(productId, { image: persisted.image, images: persisted.images }).catch((error) =>
+          setOrderMessage(error.message || "Could not save uploaded product images to the server.")
+        );
+      }
+    } catch {
+      setOrderMessage("Could not read one or more uploaded product images.");
+    }
   }
 
   function updateQuantity(cartId, delta) {
@@ -811,45 +861,51 @@ function App() {
               />
             )}
             <StorySections />
-            <Shop
-              products={filteredProducts}
-              isLoading={catalogStatus === "connecting"}
-              selectedProductId={selectedProduct.id}
-              searchQuery={searchQuery}
-              wishlist={wishlist}
-              onSelect={selectProduct}
-              onWishlist={toggleWishlist}
-            />
-            <ProductStudio
-              product={selectedProduct}
-              selectedSize={selectedSize}
-              selectedColor={selectedColor}
-              selectedQuantity={selectedQuantity}
-              selectedSizeStock={selectedSizeStock}
-              cart={cart}
-              checkoutLoading={checkoutLoading}
-              subtotal={subtotal}
-              orderMessage={orderMessage}
-              recentlyViewed={recentlyViewedProducts}
-              relatedProducts={relatedProducts}
-              onSize={setSelectedSize}
-              onColor={setSelectedColor}
-              onPurchaseQuantity={setSelectedQuantity}
-              onAdd={addToCart}
-              onBuyNow={buyNow}
-              onSelect={selectProduct}
-              onQuantity={updateQuantity}
-              onCheckout={handleCheckout}
-              wishlist={wishlist}
-              onWishlist={toggleWishlist}
-            />
-            <WishlistPanel
-              products={wishlistProducts}
-              onSelect={selectProduct}
-              onWishlist={toggleWishlist}
-            />
-            <OrderTracking cart={cart} order={lastOrder} />
-            {(adminUnlocked || routePath.startsWith("admin")) && (
+            {shouldShowCommerceSections && (
+              <>
+                <Shop
+                  products={filteredProducts}
+                  isLoading={catalogStatus === "connecting"}
+                  selectedProductId={selectedProduct?.id || ""}
+                  searchQuery={searchQuery}
+                  wishlist={wishlist}
+                  onSelect={selectProduct}
+                  onWishlist={toggleWishlist}
+                />
+                {selectedProduct && (
+                  <ProductStudio
+                    product={selectedProduct}
+                    selectedSize={selectedSize}
+                    selectedColor={selectedColor}
+                    selectedQuantity={selectedQuantity}
+                    selectedSizeStock={selectedSizeStock}
+                    cart={cart}
+                    checkoutLoading={checkoutLoading}
+                    subtotal={subtotal}
+                    orderMessage={orderMessage}
+                    recentlyViewed={recentlyViewedProducts}
+                    relatedProducts={relatedProducts}
+                    onSize={setSelectedSize}
+                    onColor={setSelectedColor}
+                    onPurchaseQuantity={setSelectedQuantity}
+                    onAdd={addToCart}
+                    onBuyNow={buyNow}
+                    onSelect={selectProduct}
+                    onQuantity={updateQuantity}
+                    onCheckout={handleCheckout}
+                    wishlist={wishlist}
+                    onWishlist={toggleWishlist}
+                  />
+                )}
+                <WishlistPanel
+                  products={wishlistProducts}
+                  onSelect={selectProduct}
+                  onWishlist={toggleWishlist}
+                />
+                <OrderTracking cart={cart} order={lastOrder} />
+              </>
+            )}
+            {routePath.startsWith("admin") && (
               <AdminPanel
                 adminUnlocked={adminUnlocked}
                 authEnabled={hasApi}
@@ -1083,7 +1139,7 @@ function BrandReveal() {
             <span className="reveal-orbit reveal-orbit-one" aria-hidden="true" />
             <span className="reveal-orbit reveal-orbit-two" aria-hidden="true" />
             <span className="reveal-sweep" aria-hidden="true" />
-            <img alt="MG69 Street Luxury logo reveal" src={brandLogo} width="1254" height="1254" />
+            <span className="reveal-wordmark">MG69</span>
           </motion.div>
           <motion.div
             className="reveal-copy"
@@ -1128,7 +1184,6 @@ function Header({
         <Menu />
       </button>
       <a className="brand" href="#home">
-        <img alt="" src={brandLogo} width="1254" height="1254" />
         <span>MG69</span>
       </a>
       <nav className="primary-nav" aria-label="Primary navigation">
@@ -1221,7 +1276,6 @@ function AppDrawer({
           >
             <div className="drawer-header">
               <a className="brand" href="#home" onClick={onClose}>
-                <img alt="" src={brandLogo} width="1254" height="1254" />
                 <span>MG69</span>
               </a>
               <button className="icon-button" onClick={onClose} type="button" aria-label="Close menu">
@@ -1283,7 +1337,7 @@ function AppDrawer({
             </div>
 
             <p className="drawer-footnote">
-              {catalogStatus === "database" ? "MongoDB catalog connected" : "Local fallback catalog / database ready"}
+              {catalogStatus === "database" ? "MongoDB catalog connected" : "Admin-managed inventory"}
             </p>
           </motion.aside>
         </motion.div>
@@ -1302,7 +1356,7 @@ function ModeDashboard({
   subtotal,
   wishlistCount
 }) {
-  const activeDrop = products.find((product) => product.collection === "Drop 001") || products[0];
+  const activeDrop = products.find((product) => product.collection === "Drop 001") || products[0] || null;
   const lastOrderDate = lastOrder?.createdAt
     ? new Date(lastOrder.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })
     : "Not started";
@@ -1366,7 +1420,6 @@ const fxTicker = ["MG69 Street Luxury", "Drop 001 — Live Now", "Utility Collec
 
 function Hero() {
   const [pointer, setPointer] = useState({ x: 0, y: 0 });
-  const featured = products[0];
 
   function handlePointerMove(event) {
     const bounds = event.currentTarget.getBoundingClientRect();
@@ -1411,15 +1464,14 @@ function Hero() {
           <span className="fx-glow" aria-hidden="true" />
           <span className="fx-orbit o1" aria-hidden="true" />
           <span className="fx-orbit o2" aria-hidden="true" />
-          <motion.img
-            src={brandLogo}
-            alt="MG69 emblem"
-            width="1254"
-            height="1254"
+          <motion.span
+            className="fx-emblem-text"
             animate={{ y: [0, -10, 0] }}
             transition={{ duration: 6, ease: "easeInOut", repeat: Infinity }}
-          />
-          <span className="fx-reflection" aria-hidden="true" style={{ backgroundImage: `url(${brandLogo})` }} />
+          >
+            MG69
+          </motion.span>
+          <span className="fx-reflection fx-reflection-text" aria-hidden="true">MG69</span>
         </motion.div>
 
         <motion.h1 className="fx-title" variants={fxItem}>
@@ -1443,21 +1495,6 @@ function Hero() {
           <span>Streetwear Elevated</span>
         </motion.div>
       </motion.div>
-
-      <motion.a
-        className="fx-spec"
-        href="#product"
-        initial={{ opacity: 0, y: 28 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 1.05, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-      >
-        <ProductImage alt={`${featured.name} featured drop`} image={featured.images?.[0] || featured.image} />
-        <span className="fx-spec-body">
-          <span className="fx-spec-tag">Featured Drop</span>
-          <span className="fx-spec-name">{featured.name}</span>
-          <span className="fx-spec-price">{money(featured.price)}</span>
-        </span>
-      </motion.a>
 
       <div className="fx-ticker" aria-hidden="true">
         <div className="fx-ticker-track">
@@ -1562,7 +1599,7 @@ function CampaignSection() {
       <div className="editorial-campaigns-inner">
         <p className="editorial-kicker">MG 69 LUXURY</p>
 
-        <h2>Editorial Campaigns</h2>
+        <h2>Inventory-Ready Campaign System</h2>
 
         <div className="editorial-campaign-grid">
           {campaigns.map((item) => (
@@ -1573,17 +1610,10 @@ function CampaignSection() {
               viewport={{ once: true, margin: "-80px" }}
               whileInView={{ opacity: 1, y: 0 }}
             >
-              <img
-                src={item.image}
-                alt={item.title}
-                loading="lazy"
-                width={item.width}
-                height={item.height}
-              />
-
               <div>
                 <h3>{item.title}</h3>
                 <p>{item.subtitle}</p>
+                <span>Awaiting admin product imagery</span>
               </div>
             </motion.article>
           ))}
@@ -1597,14 +1627,10 @@ function Shop({ isLoading, products, searchQuery, selectedProductId, wishlist, o
   return (
     <section className="shop-section" id="shop">
       <div className="collection-campaign-banner">
-        <ProductImage
-          alt="MG69 Utility Collection banner"
-          image={utilityCampaignImages.board}
-        />
         <div>
           <p className="eyebrow">MG69 Utility Collection</p>
           <h2>Designed for the Bold.</h2>
-          <p>Premium utility streetwear collection.</p>
+          <p>Inventory is empty until an owner adds products, stock, and image angles from the admin dashboard.</p>
         </div>
       </div>
       <div className="section-heading">
@@ -2230,7 +2256,26 @@ function AdminPanel({
   wishlistCount
 }) {
   const [selectedAdminId, setSelectedAdminId] = useState(products[0]?.id || "");
-  const selectedAdminProduct = products.find((product) => product.id === selectedAdminId) || products[0];
+  const [adminSearch, setAdminSearch] = useState("");
+  const filteredAdminProducts = useMemo(() => {
+    const query = adminSearch.trim().toLowerCase();
+    if (!query) return products;
+    return products.filter((product) =>
+      [
+        product.name,
+        product.collection,
+        product.category,
+        product.type,
+        product.description,
+        ...(product.tags || [])
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(query)
+    );
+  }, [adminSearch, products]);
+  const selectedAdminProduct = products.find((product) => product.id === selectedAdminId) || filteredAdminProducts[0] || products[0] || null;
   const paidOrders = orders.filter((order) => order.status === "paid");
   const ordersRevenue = orders.reduce((sum, order) => sum + Number(order.total || 0), 0);
   const orderCountLabel = orders.length ? `${orders.length} orders` : lastOrder ? "1 draft" : "0 orders";
@@ -2297,7 +2342,7 @@ function AdminPanel({
       id: "admin-settings",
       icon: Settings,
       label: "Settings",
-      value: catalogStatus === "database" ? "DB live" : "Local mode",
+      value: catalogStatus === "database" ? "DB live" : "Admin managed",
       body: "Environment-ready controls for API URL, payments, auth, and catalog source."
     }
   ];
@@ -2339,7 +2384,9 @@ function AdminPanel({
       <div className="section-heading">
         <p className="eyebrow">Admin interface</p>
         <h2>Command dashboard</h2>
-        <span className="data-source-pill">{catalogStatus === "database" ? "MongoDB live" : "Local fallback"}</span>
+        <span className="data-source-pill">
+          {catalogStatus === "database" ? "MongoDB live" : catalogStatus === "admin-managed" ? "Admin managed" : "Local inventory"}
+        </span>
       </div>
       <div className="admin-grid">
         {modules.map(({ body, icon: Icon, id, label, value }) => (
@@ -2352,22 +2399,40 @@ function AdminPanel({
         ))}
       </div>
 
-      {selectedAdminProduct && (
-        <div className="admin-inventory-dashboard" id="admin-inventory">
-          <div className="admin-inventory-sidebar">
-            <div className="admin-inventory-heading">
-              <div>
-                <p className="eyebrow">Inventory system</p>
-                <h3>Manage Stock</h3>
-              </div>
-              <button className="primary-command compact" onClick={onAddProduct} type="button">
-                <Plus size={16} /> Add Product
-              </button>
+      <div className="admin-inventory-dashboard" id="admin-inventory">
+        <div className="admin-inventory-sidebar">
+          <div className="admin-inventory-heading">
+            <div>
+              <p className="eyebrow">Inventory system</p>
+              <h3>Manage Stock</h3>
             </div>
-            <div className="admin-product-list" aria-label="Admin product selector">
-              {products.map((product) => (
+            <button className="primary-command compact" onClick={onAddProduct} type="button">
+              <Plus size={16} /> Add Product
+            </button>
+          </div>
+
+          <label className="admin-product-search">
+            <span>Search admin products</span>
+            <input
+              aria-label="Search admin products"
+              onChange={(event) => setAdminSearch(event.target.value)}
+              placeholder="Search product, collection, tag..."
+              type="search"
+              value={adminSearch}
+            />
+          </label>
+
+          <div className="admin-product-list" aria-label="Admin product selector">
+            {filteredAdminProducts.length === 0 ? (
+              <div className="admin-empty-list">
+                <Package />
+                <strong>{products.length === 0 ? "Inventory is empty" : "No matching products"}</strong>
+                <span>{products.length === 0 ? "Add your first MG69 product." : "Try another admin search."}</span>
+              </div>
+            ) : (
+              filteredAdminProducts.map((product) => (
                 <button
-                  className={product.id === selectedAdminProduct.id ? "active" : ""}
+                  className={selectedAdminProduct && product.id === selectedAdminProduct.id ? "active" : ""}
                   key={product.id}
                   onClick={() => setSelectedAdminId(product.id)}
                   type="button"
@@ -2377,87 +2442,109 @@ function AdminPanel({
                   <strong>{product.name}</strong>
                   <small>{getStockLabel(product.stock)}</small>
                 </button>
-              ))}
-            </div>
+              ))
+            )}
           </div>
+        </div>
 
+        {selectedAdminProduct ? (
           <div className="admin-product-editor" id="admin-products">
-            <div className="admin-editor-preview">
-              <ProductImage alt={`${selectedAdminProduct.name} admin preview`} image={selectedAdminProduct.images?.[0] || selectedAdminProduct.image} />
+          <div className="admin-editor-preview">
+            <ProductImage alt={`${selectedAdminProduct.name} admin preview`} image={selectedAdminProduct.images?.[0] || selectedAdminProduct.image} />
+          </div>
+          <div className="admin-editor-fields">
+            <div className="admin-editor-title">
+              <div>
+                <p className="eyebrow">Edit Product</p>
+                <h3>{selectedAdminProduct.name}</h3>
+              </div>
+              <button
+                className="delete-product-button"
+                onClick={() => onDeleteProduct(selectedAdminProduct.id)}
+                type="button"
+              >
+                <Trash2 size={16} /> Delete Product
+              </button>
             </div>
-            <div className="admin-editor-fields">
-              <div className="admin-editor-title">
-                <div>
-                  <p className="eyebrow">Edit Product</p>
-                  <h3>{selectedAdminProduct.name}</h3>
-                </div>
-                <button
-                  className="delete-product-button"
-                  disabled={products.length <= 1}
-                  onClick={() => onDeleteProduct(selectedAdminProduct.id)}
-                  type="button"
-                >
-                  <Trash2 size={16} /> Delete Product
-                </button>
-              </div>
 
-              <div className="admin-field-grid">
-                <label>
-                  <span>Product name</span>
-                  <input
-                    defaultValue={selectedAdminProduct.name}
-                    onBlur={(event) => onEditProduct(selectedAdminProduct.id, { name: event.target.value })}
-                  />
-                </label>
-                <label>
-                  <span>Price</span>
-                  <input
-                    defaultValue={selectedAdminProduct.price}
-                    min="0"
-                    onBlur={(event) => onEditProduct(selectedAdminProduct.id, { price: event.target.value })}
-                    type="number"
-                  />
-                </label>
-                <label>
-                  <span>Total stock</span>
-                  <input
-                    defaultValue={selectedAdminProduct.stock}
-                    min="0"
-                    onBlur={(event) => onEditProduct(selectedAdminProduct.id, { stock: event.target.value })}
-                    type="number"
-                  />
-                </label>
-                <label>
-                  <span>Collection</span>
-                  <input
-                    defaultValue={selectedAdminProduct.collection}
-                    onBlur={(event) => onEditProduct(selectedAdminProduct.id, { collection: event.target.value })}
-                  />
-                </label>
-              </div>
-
-              <label className="admin-upload-control">
-                <Upload size={18} />
-                <span>Upload Images</span>
+            <div className="admin-field-grid">
+              <label>
+                <span>Product name</span>
                 <input
-                  accept="image/*"
-                  onChange={(event) => onUploadImage(selectedAdminProduct.id, event.target.files?.[0])}
-                  type="file"
+                  defaultValue={selectedAdminProduct.name}
+                  onBlur={(event) => onEditProduct(selectedAdminProduct.id, { name: event.target.value })}
                 />
               </label>
+              <label>
+                <span>Price</span>
+                <input
+                  defaultValue={selectedAdminProduct.price}
+                  min="0"
+                  onBlur={(event) => onEditProduct(selectedAdminProduct.id, { price: event.target.value })}
+                  type="number"
+                />
+              </label>
+              <label>
+                <span>Total stock</span>
+                <input
+                  defaultValue={selectedAdminProduct.stock}
+                  min="0"
+                  onBlur={(event) => onEditProduct(selectedAdminProduct.id, { stock: event.target.value })}
+                  type="number"
+                />
+              </label>
+              <label>
+                <span>Collection</span>
+                <input
+                  defaultValue={selectedAdminProduct.collection}
+                  onBlur={(event) => onEditProduct(selectedAdminProduct.id, { collection: event.target.value })}
+                />
+              </label>
+            </div>
 
-              <div className="admin-size-stock">
-                {selectedAdminProduct.sizes.map((size) => (
-                  <article key={size}>
-                    <span>{size}</span>
-                    <strong>{Number(selectedAdminProduct.sizeStock?.[size] ?? selectedAdminProduct.stock ?? 0)}</strong>
-                    <div>
-                      <button onClick={() => onStock(selectedAdminProduct.id, size, -1)} type="button"><Minus size={14} /></button>
-                      <button onClick={() => onStock(selectedAdminProduct.id, size, 1)} type="button"><Plus size={14} /></button>
-                    </div>
+            <label className="admin-upload-control">
+              <Upload size={18} />
+              <span>Upload Multiple Angle Images</span>
+              <input
+                accept="image/*"
+                multiple
+                onChange={(event) => {
+                  onUploadImage(selectedAdminProduct.id, event.target.files);
+                  event.target.value = "";
+                }}
+                type="file"
+              />
+            </label>
+
+            <div className="admin-image-strip" aria-label="Uploaded product image angles">
+              {(selectedAdminProduct.images || []).length === 0 ? (
+                <div className="admin-empty-list compact">
+                  <Upload />
+                  <strong>No product images yet</strong>
+                  <span>Upload front, back, side, model, flat lay, and detail shots together.</span>
+                </div>
+              ) : (
+                selectedAdminProduct.images.map((image, index) => (
+                  <article key={`${image.src}-${index}`}>
+                    <ProductImage alt={`${selectedAdminProduct.name} ${image.label || `Image ${index + 1}`}`} image={image} />
+                    <span>{image.label || `Image ${index + 1}`}</span>
                   </article>
-                ))}
-              </div>
+                ))
+              )}
+            </div>
+
+            <div className="admin-size-stock">
+              {selectedAdminProduct.sizes.map((size) => (
+                <article key={size}>
+                  <span>{size}</span>
+                  <strong>{Number(selectedAdminProduct.sizeStock?.[size] ?? selectedAdminProduct.stock ?? 0)}</strong>
+                  <div>
+                    <button onClick={() => onStock(selectedAdminProduct.id, size, -1)} type="button"><Minus size={14} /></button>
+                    <button onClick={() => onStock(selectedAdminProduct.id, size, 1)} type="button"><Plus size={14} /></button>
+                  </div>
+                </article>
+              ))}
+            </div>
 
               <div className="admin-orders-panel" id="admin-orders">
                 <div>
@@ -2516,8 +2603,19 @@ function AdminPanel({
               </div>
             </div>
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="admin-product-editor admin-product-empty" id="admin-products">
+            <div className="empty-panel">
+              <Package />
+              <h3>No inventory yet</h3>
+              <p>Create a product, then upload multiple angle images and manage size stock here.</p>
+              <button className="primary-command compact" onClick={onAddProduct} type="button">
+                <Plus size={16} /> Add First Product
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </section>
   );
 }

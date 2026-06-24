@@ -3861,6 +3861,11 @@ button {
   cursor: pointer;
 }
 
+.admin-upload-control.uploading {
+  cursor: wait;
+  opacity: 0.72;
+}
+
 .admin-upload-control input {
   position: absolute;
   width: 1px;

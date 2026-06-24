@@ -72,18 +72,68 @@ const uploadAngleLabels = [
   "Pocket Detail",
   "Lifestyle Shot"
 ];
+const maxUploadFilesPerBatch = uploadAngleLabels.length;
+const uploadCompressionPasses = [
+  { maxDimension: 1400, quality: 0.74, maxLength: 360000 },
+  { maxDimension: 1100, quality: 0.66, maxLength: 300000 },
+  { maxDimension: 900, quality: 0.58, maxLength: 240000 },
+  { maxDimension: 720, quality: 0.52, maxLength: Infinity }
+];
 
 function canManageApp(user) {
   return privilegedRoles.has(String(user?.role || "").toLowerCase());
 }
 
-function readFileAsDataUrl(file) {
+function loadImageElement(file) {
   return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.addEventListener("load", () => resolve(reader.result));
-    reader.addEventListener("error", () => reject(reader.error));
-    reader.readAsDataURL(file);
+    const image = new Image();
+    const objectUrl = URL.createObjectURL(file);
+
+    image.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(image);
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error(`Could not read ${file.name}`));
+    };
+    image.src = objectUrl;
   });
+}
+
+function drawImageToDataUrl(image, maxDimension, quality) {
+  const sourceWidth = image.naturalWidth || image.width || 1200;
+  const sourceHeight = image.naturalHeight || image.height || 1600;
+  const scale = Math.min(1, maxDimension / Math.max(sourceWidth, sourceHeight));
+  const width = Math.max(1, Math.round(sourceWidth * scale));
+  const height = Math.max(1, Math.round(sourceHeight * scale));
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d", { alpha: false });
+
+  canvas.width = width;
+  canvas.height = height;
+  context.fillStyle = "#0b0a08";
+  context.fillRect(0, 0, width, height);
+  context.drawImage(image, 0, 0, width, height);
+
+  let src = canvas.toDataURL("image/webp", quality);
+  if (!src.startsWith("data:image/webp")) {
+    src = canvas.toDataURL("image/jpeg", quality);
+  }
+
+  return { src, width, height };
+}
+
+async function optimizeUploadImage(file) {
+  const image = await loadImageElement(file);
+  let optimized = null;
+
+  for (const pass of uploadCompressionPasses) {
+    optimized = drawImageToDataUrl(image, pass.maxDimension, pass.quality);
+    if (optimized.src.length <= pass.maxLength) break;
+  }
+
+  return optimized;
 }
 
 // API-served products use root-relative asset paths (e.g. "/products/x.png").
@@ -311,6 +361,7 @@ function App() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authError, setAuthError] = useState("");
   const [authBusy, setAuthBusy] = useState(false);
+  const [uploadingProductId, setUploadingProductId] = useState("");
   const [orders, setOrders] = useState([]);
   const [route, setRoute] = useState(window.location.hash.replace("#", "") || "home");
   const routePath = route.replace(/^\//, "").split("?")[0] || "home";
@@ -680,18 +731,28 @@ function App() {
   }
 
   async function uploadAdminImage(productId, fileList) {
-    const files = Array.from(fileList || []).filter((file) => file?.type?.startsWith("image/"));
+    const selectedFiles = Array.from(fileList || []).filter((file) => file?.type?.startsWith("image/"));
+    const files = selectedFiles.slice(0, maxUploadFilesPerBatch);
     if (!files.length) return;
 
+    setUploadingProductId(productId);
+    setOrderMessage(`Optimizing ${files.length} product image${files.length === 1 ? "" : "s"}...`);
+
     try {
-      const uploadedImages = await Promise.all(
-        files.map(async (file, index) => ({
+      const uploadedImages = [];
+
+      for (const [index, file] of files.entries()) {
+        const optimized = await optimizeUploadImage(file);
+        uploadedImages.push({
+          id: `admin-image-${Date.now()}-${index}-${file.name.replace(/\W+/g, "-").toLowerCase()}`,
           label: uploadAngleLabels[index] || `Angle ${index + 1}`,
-          src: await readFileAsDataUrl(file),
-          width: 1200,
-          height: 1600
-        }))
-      );
+          fileName: file.name,
+          src: optimized.src,
+          width: optimized.width,
+          height: optimized.height
+        });
+      }
+
       let persisted = null;
 
       setCatalog((current) =>
@@ -713,8 +774,16 @@ function App() {
           setOrderMessage(error.message || "Could not save uploaded product images to the server.")
         );
       }
-    } catch {
+      setOrderMessage(
+        `${uploadedImages.length} product image${uploadedImages.length === 1 ? "" : "s"} uploaded. ${
+          selectedFiles.length > files.length ? `${selectedFiles.length - files.length} extra file(s) were skipped.` : ""
+        }`.trim()
+      );
+    } catch (error) {
+      console.error("Admin image upload failed:", error);
       setOrderMessage("Could not read one or more uploaded product images.");
+    } finally {
+      setUploadingProductId("");
     }
   }
 
@@ -926,6 +995,7 @@ function App() {
                 orders={orders}
                 products={catalog}
                 subtotal={subtotal}
+                uploadingProductId={uploadingProductId}
                 wishlistCount={wishlist.length}
               />
             )}
@@ -2255,6 +2325,7 @@ function AdminPanel({
   orders = [],
   products,
   subtotal,
+  uploadingProductId,
   wishlistCount
 }) {
   const [selectedAdminId, setSelectedAdminId] = useState(products[0]?.id || "");
@@ -2278,6 +2349,7 @@ function AdminPanel({
     );
   }, [adminSearch, products]);
   const selectedAdminProduct = products.find((product) => product.id === selectedAdminId) || filteredAdminProducts[0] || products[0] || null;
+  const isUploadingSelectedProduct = Boolean(selectedAdminProduct && uploadingProductId === selectedAdminProduct.id);
   const paidOrders = orders.filter((order) => order.status === "paid");
   const ordersRevenue = orders.reduce((sum, order) => sum + Number(order.total || 0), 0);
   const orderCountLabel = orders.length ? `${orders.length} orders` : lastOrder ? "1 draft" : "0 orders";
@@ -2504,11 +2576,15 @@ function AdminPanel({
               </label>
             </div>
 
-            <label className="admin-upload-control">
+            <label
+              aria-busy={isUploadingSelectedProduct}
+              className={`admin-upload-control ${isUploadingSelectedProduct ? "uploading" : ""}`}
+            >
               <Upload size={18} />
-              <span>Upload Multiple Angle Images</span>
+              <span>{isUploadingSelectedProduct ? "Optimizing Images..." : "Upload Multiple Angle Images"}</span>
               <input
                 accept="image/*"
+                disabled={isUploadingSelectedProduct}
                 multiple
                 onChange={(event) => {
                   onUploadImage(selectedAdminProduct.id, event.target.files);
@@ -2527,7 +2603,7 @@ function AdminPanel({
                 </div>
               ) : (
                 selectedAdminProduct.images.map((image, index) => (
-                  <article key={`${image.src}-${index}`}>
+                  <article key={image.id || `${image.label || "image"}-${index}`}>
                     <ProductImage alt={`${selectedAdminProduct.name} ${image.label || `Image ${index + 1}`}`} image={image} />
                     <span>{image.label || `Image ${index + 1}`}</span>
                   </article>

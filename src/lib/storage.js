@@ -8,5 +8,11 @@ export function readStoredValue(key, fallback) {
 }
 
 export function writeStoredValue(key, value) {
-  window.localStorage.setItem(key, JSON.stringify(value));
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+    return true;
+  } catch (error) {
+    console.warn(`MG69 could not persist ${key}:`, error);
+    return false;
+  }
 }

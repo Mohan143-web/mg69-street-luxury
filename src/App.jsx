@@ -48,6 +48,7 @@ import OrderConfirmed from "./pages/OrderConfirmed.jsx";
 
 const money = (value) => `$${value.toFixed(2)}`;
 const previewImage = `${import.meta.env.BASE_URL}og-preview.png`;
+const brandLogo = `${import.meta.env.BASE_URL}brand/mg69-logo3.png`;
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const BASE_URL = import.meta.env.BASE_URL;
 const privilegedRoles = new Set(["admin", "owner", "access-member", "access_member"]);
@@ -1464,14 +1465,15 @@ function Hero() {
           <span className="fx-glow" aria-hidden="true" />
           <span className="fx-orbit o1" aria-hidden="true" />
           <span className="fx-orbit o2" aria-hidden="true" />
-          <motion.span
-            className="fx-emblem-text"
+          <motion.img
+            src={brandLogo}
+            alt="MG69 Street Luxury hero logo"
+            width="1254"
+            height="1254"
             animate={{ y: [0, -10, 0] }}
             transition={{ duration: 6, ease: "easeInOut", repeat: Infinity }}
-          >
-            MG69
-          </motion.span>
-          <span className="fx-reflection fx-reflection-text" aria-hidden="true">MG69</span>
+          />
+          <span className="fx-reflection" aria-hidden="true" style={{ backgroundImage: `url(${brandLogo})` }} />
         </motion.div>
 
         <motion.h1 className="fx-title" variants={fxItem}>

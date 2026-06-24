@@ -79,6 +79,7 @@ const uploadCompressionPasses = [
   { maxDimension: 900, quality: 0.58, maxLength: 240000 },
   { maxDimension: 720, quality: 0.52, maxLength: Infinity }
 ];
+const maxStoredDataImageLength = 520000;
 
 function canManageApp(user) {
   return privilegedRoles.has(String(user?.role || "").toLowerCase());
@@ -145,6 +146,14 @@ function withBase(src) {
   return `${BASE_URL}${src.replace(/^\//, "")}`;
 }
 
+function normalizeImageSrc(src) {
+  if (typeof src === "string" && src.startsWith("data:") && src.length > maxStoredDataImageLength) {
+    return "";
+  }
+
+  return withBase(src);
+}
+
 function withBaseSrcSet(srcSet) {
   if (typeof srcSet !== "string" || !srcSet) return srcSet;
   return srcSet
@@ -158,8 +167,8 @@ function withBaseSrcSet(srcSet) {
 
 function normalizeImage(image) {
   if (!image) return image;
-  if (typeof image === "string") return withBase(image);
-  return { ...image, src: withBase(image.src), srcSet: withBaseSrcSet(image.srcSet) };
+  if (typeof image === "string") return normalizeImageSrc(image);
+  return { ...image, src: normalizeImageSrc(image.src), srcSet: withBaseSrcSet(image.srcSet) };
 }
 const logoParticles = [
   { x: "8%", y: "18%", size: "5px", delay: "0s" },
@@ -307,7 +316,7 @@ function normalizeColorVariant(variant) {
 
 function normalizeProduct(product) {
   const primaryImage = product.image || product.imageUrl || product.images?.[0]?.src || "";
-  const image = primaryImage ? withBase(primaryImage) : "";
+  const image = primaryImage ? normalizeImageSrc(primaryImage) : "";
   const sizes = product.sizes?.length ? product.sizes : defaultSizes;
   const stock = Number(product.stock || 0);
 

@@ -5,7 +5,7 @@ const userSchema = new mongoose.Schema(
     name: String,
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     passwordHash: { type: String, required: true, select: false },
-    role: { type: String, enum: ["customer", "admin"], default: "customer" },
+    role: { type: String, enum: ["customer", "admin", "owner", "access-member", "access_member"], default: "customer" },
     authProviderId: String,
     wishlist: [{ type: String }]
   },

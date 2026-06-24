@@ -4,6 +4,7 @@ import { usersRepo } from "./store.js";
 
 const JWT_SECRET = process.env.JWT_SECRET || "dev-mg69-change-me";
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d";
+export const PRIVILEGED_ROLES = new Set(["admin", "owner", "access-member", "access_member"]);
 
 if (process.env.NODE_ENV === "production" && JWT_SECRET === "dev-mg69-change-me") {
   console.warn("⚠️  JWT_SECRET is using the insecure default in production. Set a strong JWT_SECRET.");
@@ -39,6 +40,10 @@ export function publicUser(user) {
   };
 }
 
+export function canManageApp(user) {
+  return PRIVILEGED_ROLES.has(String(user?.role || "").toLowerCase());
+}
+
 function readToken(request) {
   const header = request.headers.authorization || "";
   if (header.startsWith("Bearer ")) return header.slice(7).trim();
@@ -69,13 +74,13 @@ export function requireAuth(request, response, next) {
   next();
 }
 
-/** Guards a route, requiring an authenticated admin. */
+/** Guards a route, requiring an authenticated owner, access member, or admin. */
 export function requireAdmin(request, response, next) {
   if (!request.user) {
     response.status(401).json({ error: "Authentication required." });
     return;
   }
-  if (request.user.role !== "admin") {
+  if (!canManageApp(request.user)) {
     response.status(403).json({ error: "Admin access required." });
     return;
   }

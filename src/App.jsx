@@ -53,6 +53,11 @@ const brandLogo = `${import.meta.env.BASE_URL}brand/mg69-logo3.png`;
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const fallbackImage = products[0].image;
 const BASE_URL = import.meta.env.BASE_URL;
+const privilegedRoles = new Set(["admin", "owner", "access-member", "access_member"]);
+
+function canManageApp(user) {
+  return privilegedRoles.has(String(user?.role || "").toLowerCase());
+}
 
 // API-served products use root-relative asset paths (e.g. "/products/x.png").
 // On GitHub Pages the app is served under a sub-path, so prefix BASE_URL.
@@ -273,7 +278,7 @@ function App() {
   const [route, setRoute] = useState(window.location.hash.replace("#", "") || "home");
   const routePath = route.replace(/^\//, "").split("?")[0] || "home";
   const currentUser = auth?.user || null;
-  const isAdmin = currentUser?.role === "admin";
+  const isAdmin = canManageApp(currentUser);
   const adminUnlocked = isAdmin;
   const visibleAppMode = adminUnlocked && appMode === "admin" ? "admin" : "customer";
 
@@ -458,7 +463,7 @@ function App() {
 
       setAuthModalOpen(false);
 
-      if (data.user?.role === "admin") {
+      if (canManageApp(data.user)) {
         setAppMode("admin");
         window.location.hash = "admin";
       }

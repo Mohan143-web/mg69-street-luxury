@@ -274,8 +274,8 @@ function App() {
   const routePath = route.replace(/^\//, "").split("?")[0] || "home";
   const currentUser = auth?.user || null;
   const isAdmin = currentUser?.role === "admin";
-  // Admin is open in the no-backend demo, but gated behind admin auth once an API is wired.
-  const adminUnlocked = !hasApi || isAdmin;
+  const adminUnlocked = isAdmin;
+  const visibleAppMode = adminUnlocked && appMode === "admin" ? "admin" : "customer";
 
   const selectedProduct = catalog.find((product) => product.id === selectedProductId) || catalog[0] || products[0];
   const selectedSizeStock = getSizeStock(selectedProduct, selectedSize);
@@ -391,6 +391,12 @@ function App() {
       .then((data) => setOrders(Array.isArray(data) ? data : []))
       .catch(() => setOrders([]));
   }, [isAdmin]);
+
+  useEffect(() => {
+    if (!adminUnlocked && appMode === "admin") {
+      setAppMode("customer");
+    }
+  }, [adminUnlocked, appMode, setAppMode]);
 
   useEffect(() => {
     if (customerLinks.some(([target]) => target === routePath)) {
@@ -731,8 +737,9 @@ function App() {
       <BrandReveal />
       <div className="grain" aria-hidden="true" />
       <Header
-        appMode={appMode}
+        appMode={visibleAppMode}
         authEnabled={hasApi}
+        canAccessAdmin={adminUnlocked}
         itemCount={itemCount}
         onAccount={() => {
           setAuthError("");
@@ -746,7 +753,8 @@ function App() {
         wishlistCount={wishlist.length}
       />
       <AppDrawer
-        appMode={appMode}
+        appMode={visibleAppMode}
+        canAccessAdmin={adminUnlocked}
         catalogStatus={catalogStatus}
         inventoryCount={inventoryCount}
         itemCount={itemCount}
@@ -764,7 +772,7 @@ function App() {
           <>
             <Hero />
             <ModeDashboard
-              appMode={appMode}
+              appMode={visibleAppMode}
               catalogStatus={catalogStatus}
               inventoryCount={inventoryCount}
               itemCount={itemCount}
@@ -834,32 +842,39 @@ function App() {
               onWishlist={toggleWishlist}
             />
             <OrderTracking cart={cart} order={lastOrder} />
-            <AdminPanel
-              adminUnlocked={adminUnlocked}
-              authEnabled={hasApi}
-              cart={cart}
-              catalogStatus={catalogStatus}
-              inventoryCount={inventoryCount}
-              lastOrder={lastOrder}
-              onAddProduct={addAdminProduct}
-              onDeleteProduct={deleteAdminProduct}
-              onEditProduct={editAdminProduct}
-              onSignIn={() => {
-                setAuthError("");
-                setAuthModalOpen(true);
-              }}
-              onStock={updateAdminStock}
-              onUploadImage={uploadAdminImage}
-              orders={orders}
-              products={catalog}
-              subtotal={subtotal}
-              wishlistCount={wishlist.length}
-            />
+            {(adminUnlocked || routePath.startsWith("admin")) && (
+              <AdminPanel
+                adminUnlocked={adminUnlocked}
+                authEnabled={hasApi}
+                cart={cart}
+                catalogStatus={catalogStatus}
+                inventoryCount={inventoryCount}
+                lastOrder={lastOrder}
+                onAddProduct={addAdminProduct}
+                onDeleteProduct={deleteAdminProduct}
+                onEditProduct={editAdminProduct}
+                onSignIn={() => {
+                  setAuthError("");
+                  setAuthModalOpen(true);
+                }}
+                onStock={updateAdminStock}
+                onUploadImage={uploadAdminImage}
+                orders={orders}
+                products={catalog}
+                subtotal={subtotal}
+                wishlistCount={wishlist.length}
+              />
+            )}
           </>
         )}
       </main>
 
-      <MobileNav itemCount={itemCount} onMenu={() => setDrawerOpen(true)} wishlistCount={wishlist.length} />
+      <MobileNav
+        canAccessAdmin={adminUnlocked}
+        itemCount={itemCount}
+        onMenu={() => setDrawerOpen(true)}
+        wishlistCount={wishlist.length}
+      />
       {hasApi && (
         <AuthModal
           busy={authBusy}
@@ -1085,7 +1100,19 @@ function BrandReveal() {
   );
 }
 
-function Header({ appMode, authEnabled, itemCount, onAccount, onLogout, onMenu, onMode, route, user, wishlistCount }) {
+function Header({
+  appMode,
+  authEnabled,
+  canAccessAdmin,
+  itemCount,
+  onAccount,
+  onLogout,
+  onMenu,
+  onMode,
+  route,
+  user,
+  wishlistCount
+}) {
   const links = appMode === "admin" ? adminLinks : customerLinks;
 
   return (
@@ -1105,14 +1132,16 @@ function Header({ appMode, authEnabled, itemCount, onAccount, onLogout, onMenu, 
         ))}
       </nav>
       <div className="top-actions">
-        <div className="mode-toggle" aria-label="Application mode">
-          <button className={appMode === "customer" ? "active" : ""} onClick={() => onMode("customer")} type="button">
-            Customer
-          </button>
-          <button className={appMode === "admin" ? "active" : ""} onClick={() => onMode("admin")} type="button">
-            Admin
-          </button>
-        </div>
+        {canAccessAdmin && (
+          <div className="mode-toggle" aria-label="Application mode">
+            <button className={appMode === "customer" ? "active" : ""} onClick={() => onMode("customer")} type="button">
+              Customer
+            </button>
+            <button className={appMode === "admin" ? "active" : ""} onClick={() => onMode("admin")} type="button">
+              Admin
+            </button>
+          </div>
+        )}
         {authEnabled &&
           (user ? (
             <div className="account-chip" style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -1154,6 +1183,7 @@ function Header({ appMode, authEnabled, itemCount, onAccount, onLogout, onMenu, 
 
 function AppDrawer({
   appMode,
+  canAccessAdmin,
   catalogStatus,
   inventoryCount,
   itemCount,
@@ -1192,28 +1222,30 @@ function AppDrawer({
               </button>
             </div>
 
-            <div className="drawer-mode">
-              <button
-                className={appMode === "customer" ? "active" : ""}
-                onClick={() => {
-                  onMode("customer");
-                  onClose();
-                }}
-                type="button"
-              >
-                Customer
-              </button>
-              <button
-                className={appMode === "admin" ? "active" : ""}
-                onClick={() => {
-                  onMode("admin");
-                  onClose();
-                }}
-                type="button"
-              >
-                Admin
-              </button>
-            </div>
+            {canAccessAdmin && (
+              <div className="drawer-mode">
+                <button
+                  className={appMode === "customer" ? "active" : ""}
+                  onClick={() => {
+                    onMode("customer");
+                    onClose();
+                  }}
+                  type="button"
+                >
+                  Customer
+                </button>
+                <button
+                  className={appMode === "admin" ? "active" : ""}
+                  onClick={() => {
+                    onMode("admin");
+                    onClose();
+                  }}
+                  type="button"
+                >
+                  Admin
+                </button>
+              </div>
+            )}
 
             <nav className="drawer-nav" aria-label={`${appMode} navigation`}>
               {links.map(([target, label]) => (
@@ -2269,7 +2301,7 @@ function AdminPanel({
     }
   }, [products, selectedAdminId]);
 
-  if (authEnabled && !adminUnlocked) {
+  if (!adminUnlocked) {
     return (
       <section className="admin-section" id="admin">
         <div className="section-heading">
@@ -2280,10 +2312,16 @@ function AdminPanel({
         <div className="empty-panel" style={{ textAlign: "center" }}>
           <Settings />
           <h3>Admin access required</h3>
-          <p>Sign in with an admin account to manage products, inventory, and orders.</p>
-          <button className="primary-command compact" onClick={onSignIn} type="button" style={{ marginTop: 14 }}>
-            Sign in as admin
-          </button>
+          <p>
+            {authEnabled
+              ? "Sign in with an owner or access-member account to manage products, inventory, and orders."
+              : "Connect the MG69 API and sign in with an owner account to manage products, inventory, and orders."}
+          </p>
+          {authEnabled && (
+            <button className="primary-command compact" onClick={onSignIn} type="button" style={{ marginTop: 14 }}>
+              Sign in as admin
+            </button>
+          )}
         </div>
       </section>
     );
@@ -2477,14 +2515,14 @@ function AdminPanel({
   );
 }
 
-function MobileNav({ itemCount, onMenu, wishlistCount }) {
+function MobileNav({ canAccessAdmin, itemCount, onMenu, wishlistCount }) {
   return (
     <nav className="mobile-nav" aria-label="Mobile navigation">
       <button onClick={onMenu} type="button"><Menu size={18} />Menu</button>
       <a href="#shop"><Search size={18} />Shop</a>
       <a href="#wishlist"><Heart size={18} />Wish {wishlistCount}</a>
       <a href="#checkout"><ShoppingBag size={18} />Bag {itemCount}</a>
-      <a href="#admin"><User size={18} />Admin</a>
+      {canAccessAdmin && <a href="#admin"><User size={18} />Admin</a>}
     </nav>
   );
 }

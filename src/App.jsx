@@ -776,16 +776,18 @@ function App() {
         ) : (
           <>
             <Hero />
-            <ModeDashboard
-              appMode={visibleAppMode}
-              catalogStatus={catalogStatus}
-              inventoryCount={inventoryCount}
-              itemCount={itemCount}
-              lastOrder={lastOrder}
-              products={catalog}
-              subtotal={subtotal}
-              wishlistCount={wishlist.length}
-            />
+            {adminUnlocked && (
+              <ModeDashboard
+                appMode={visibleAppMode}
+                catalogStatus={catalogStatus}
+                inventoryCount={inventoryCount}
+                itemCount={itemCount}
+                lastOrder={lastOrder}
+                products={catalog}
+                subtotal={subtotal}
+                wishlistCount={wishlist.length}
+              />
+            )}
             <CategoryNavigator
               activeCategory={activeCategory}
               activeCollection={activeCollection}

@@ -83,6 +83,19 @@ export function fetchMe() {
   return apiRequest("/api/auth/me");
 }
 
+/* --------------------------- Early access -------------------------- */
+
+export function subscribeEmail(email) {
+  return apiRequest("/api/subscribe", {
+    method: "POST",
+    body: JSON.stringify({ email, source: "drop-001-early-access" })
+  });
+}
+
+export function fetchSubscriberCount() {
+  return apiRequest("/api/subscribe/count");
+}
+
 export function syncWishlist(wishlist) {
   return apiRequest("/api/auth/me/wishlist", { method: "PUT", body: JSON.stringify({ wishlist }) });
 }

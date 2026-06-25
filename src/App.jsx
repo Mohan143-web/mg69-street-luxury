@@ -36,11 +36,13 @@ import {
   deleteProduct,
   fetchMe,
   fetchOrders,
+  fetchSubscriberCount,
   getToken,
   hasApi,
   loginUser,
   registerUser,
   setToken,
+  subscribeEmail,
   updateProduct
 } from "./lib/api.js";
 import { readStoredValue, writeStoredValue } from "./lib/storage.js";
@@ -1651,10 +1653,57 @@ const fxItem = {
   hidden: { opacity: 0, y: 26 },
   show: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] } }
 };
-const fxTicker = ["MG69 Street Luxury", "Drop 001 — Live Now", "Utility Collection", "Designed for the Bold", "Free Worldwide Shipping"];
+const fxTicker = ["MG69 Street Luxury", "Drop 001 — Coming Soon", "Get Early Access", "Designed for the Bold", "Black & Gold, With Edge"];
 
 function Hero() {
   const [pointer, setPointer] = useState({ x: 0, y: 0 });
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState("idle"); // idle | loading | done | error
+  const [message, setMessage] = useState("");
+  const [count, setCount] = useState(null);
+
+  useEffect(() => {
+    if (!hasApi) return;
+    fetchSubscriberCount()
+      .then((data) => {
+        if (data && typeof data.count === "number") setCount(data.count);
+      })
+      .catch(() => {});
+  }, []);
+
+  async function handleSubscribe(event) {
+    event.preventDefault();
+    if (status === "loading") return;
+
+    const value = email.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+      setStatus("error");
+      setMessage("Enter a valid email address.");
+      return;
+    }
+
+    setStatus("loading");
+    setMessage("");
+
+    try {
+      if (!hasApi) {
+        setStatus("done");
+        setMessage("You're in. Early access secured.");
+        return;
+      }
+      const result = await subscribeEmail(value);
+      setStatus("done");
+      setMessage(
+        result?.alreadyOn
+          ? "You're already on the list — see you at the drop."
+          : "You're in. Early access secured."
+      );
+      setCount((current) => (typeof current === "number" && !result?.alreadyOn ? current + 1 : current));
+    } catch (error) {
+      setStatus("error");
+      setMessage(error?.message || "Something went wrong — try again.");
+    }
+  }
 
   function handlePointerMove(event) {
     const bounds = event.currentTarget.getBoundingClientRect();
@@ -1692,7 +1741,7 @@ function Hero() {
       <div className="fx-layer fx-grain" aria-hidden="true" />
 
       <motion.div className="fx-stage" variants={fxStage} initial="hidden" animate="show">
-        <motion.span className="fx-kicker" variants={fxItem}>Est. MMXXV · Street Luxury</motion.span>
+        <motion.span className="fx-kicker" variants={fxItem}>Drop 001 · Early Access</motion.span>
 
         <motion.div className="fx-emblem" variants={fxItem}>
           <span className="fx-halo" aria-hidden="true" />
@@ -1716,13 +1765,43 @@ function Hero() {
         </motion.h1>
 
         <motion.p className="fx-tagline" variants={fxItem}>
-          Premium oversized utility silhouettes — engineered for comfort, confidence, and a future-facing
-          streetwear standard.
+          Black &amp; gold, with edge. Drop 001 lands soon — join the early-access list for first look,
+          first pick, and members-only pricing before it goes public.
         </motion.p>
 
-        <motion.div className="fx-cta" variants={fxItem}>
-          <a className="fx-btn fx-btn-primary" href="#shop">Enter the Drop →</a>
-          <a className="fx-btn fx-btn-ghost" href="#lookbook">View Lookbook</a>
+        <motion.div className="fx-capture" variants={fxItem}>
+          {status === "done" ? (
+            <div className="fx-form-done">
+              <span className="fx-check">✓</span>
+              <span>{message}</span>
+            </div>
+          ) : (
+            <form className="fx-form" onSubmit={handleSubscribe}>
+              <div className="fx-form-row">
+                <input
+                  type="email"
+                  name="email"
+                  inputMode="email"
+                  autoComplete="email"
+                  placeholder="you@email.com"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  aria-label="Email for Drop 001 early access"
+                />
+                <button type="submit" disabled={status === "loading"}>
+                  {status === "loading" ? "Joining…" : "Get Early Access"}
+                </button>
+              </div>
+              <span className={`fx-form-note${status === "error" ? " err" : ""}`}>
+                {status === "error"
+                  ? message
+                  : count != null
+                    ? `Join ${count.toLocaleString()} already on the early-access list`
+                    : "No spam — one email when Drop 001 goes live."}
+              </span>
+            </form>
+          )}
+          <a className="fx-secondary" href="#shop">Preview the collection ↓</a>
         </motion.div>
 
         <motion.div className="fx-pillars" variants={fxItem} aria-label="MG69 brand pillars">

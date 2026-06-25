@@ -8,6 +8,7 @@ import authRouter from "./routes/auth.js";
 import checkoutRouter from "./routes/checkout.js";
 import ordersRouter from "./routes/orders.js";
 import productsRouter from "./routes/products.js";
+import subscribeRouter from "./routes/subscribe.js";
 
 const app = express();
 
@@ -57,6 +58,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/products", productsRouter);
 app.use("/api/orders", ordersRouter);
 app.use("/api/checkout", checkoutRouter);
+app.use("/api/subscribe", subscribeRouter);
 
 // Centralized error handler so thrown errors return JSON, not stack traces.
 app.use((error, _request, response, _next) => {

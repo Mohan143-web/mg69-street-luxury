@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import { fallbackProducts } from "./data/fallbackProducts.js";
 import { Order } from "./models/Order.js";
 import { Product } from "./models/Product.js";
+import { Subscriber } from "./models/Subscriber.js";
 import { User } from "./models/User.js";
 
 /**
@@ -28,7 +29,8 @@ const memory = {
     _id: product.id || newId()
   })),
   orders: [],
-  users: []
+  users: [],
+  subscribers: []
 };
 
 function matchProduct(product, { category, collection } = {}) {
@@ -224,6 +226,26 @@ export const ordersRepo = {
     if (!order) return null;
     Object.assign(order, updates, { updatedAt: nowIso() });
     return order;
+  }
+};
+
+export const subscribersRepo = {
+  async add(email, source = "early-access") {
+    const normalized = String(email || "").toLowerCase().trim();
+    if (dbConnected()) {
+      const existing = await Subscriber.findOne({ email: normalized });
+      if (existing) return { created: false };
+      await Subscriber.create({ email: normalized, source });
+      return { created: true };
+    }
+    if (memory.subscribers.some((sub) => sub.email === normalized)) return { created: false };
+    memory.subscribers.push({ email: normalized, source, createdAt: nowIso() });
+    return { created: true };
+  },
+
+  async count() {
+    if (dbConnected()) return Subscriber.countDocuments({});
+    return memory.subscribers.length;
   }
 };
 

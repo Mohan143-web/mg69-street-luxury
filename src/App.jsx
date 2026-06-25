@@ -420,6 +420,10 @@ function normalizeProduct(product) {
   };
 }
 
+function isCustomerVisibleProduct(product) {
+  return Boolean(product?.image || product?.images?.length);
+}
+
 function usePersistentState(key, fallback) {
   const [value, setValue] = useState(() => readStoredValue(key, fallback));
 
@@ -453,6 +457,7 @@ function App() {
   const [authError, setAuthError] = useState("");
   const [authBusy, setAuthBusy] = useState(false);
   const [uploadingProductId, setUploadingProductId] = useState("");
+  const [pendingImageEdits, setPendingImageEdits] = useState({});
   const [orders, setOrders] = useState([]);
   const [route, setRoute] = useState(window.location.hash.replace("#", "") || "home");
   const routePath = route.replace(/^\//, "").split("?")[0] || "home";
@@ -461,20 +466,23 @@ function App() {
   const adminUnlocked = isAdmin;
   const visibleAppMode = adminUnlocked && appMode === "admin" ? "admin" : "customer";
 
-  const selectedProduct = catalog.find((product) => product.id === selectedProductId) || catalog[0] || null;
+  const customerCatalog = useMemo(() => catalog.filter(isCustomerVisibleProduct), [catalog]);
+  const activeCustomerCatalog = visibleAppMode === "admin" ? catalog : customerCatalog;
+  const selectedProduct =
+    activeCustomerCatalog.find((product) => product.id === selectedProductId) || activeCustomerCatalog[0] || null;
   const selectedSizeStock = selectedProduct ? getSizeStock(selectedProduct, selectedSize) : 0;
   const wishlistProducts = useMemo(
-    () => catalog.filter((product) => wishlist.includes(product.id)),
-    [catalog, wishlist]
+    () => activeCustomerCatalog.filter((product) => wishlist.includes(product.id)),
+    [activeCustomerCatalog, wishlist]
   );
   const relatedProducts = useMemo(() => {
     if (!selectedProduct) return [];
     const explicitRelated = selectedProduct.relatedIds?.length
       ? selectedProduct.relatedIds
-          .map((id) => catalog.find((product) => product.id === id))
+          .map((id) => activeCustomerCatalog.find((product) => product.id === id))
           .filter(Boolean)
       : [];
-    const collectionRelated = catalog.filter(
+    const collectionRelated = activeCustomerCatalog.filter(
       (product) =>
         product.id !== selectedProduct.id &&
         (product.collection === selectedProduct.collection || product.category === selectedProduct.category)
@@ -483,7 +491,7 @@ function App() {
     return [...explicitRelated, ...collectionRelated]
       .filter((product, index, array) => array.findIndex((item) => item.id === product.id) === index)
       .slice(0, 4);
-  }, [catalog, selectedProduct]);
+  }, [activeCustomerCatalog, selectedProduct]);
   const recentlyViewedProducts = useMemo(
     () =>
       !selectedProduct
@@ -491,14 +499,14 @@ function App() {
         :
       recentlyViewed
         .filter((id) => id !== selectedProduct.id)
-        .map((id) => catalog.find((product) => product.id === id))
+        .map((id) => activeCustomerCatalog.find((product) => product.id === id))
         .filter(Boolean)
         .slice(0, 4),
-    [catalog, recentlyViewed, selectedProduct?.id]
+    [activeCustomerCatalog, recentlyViewed, selectedProduct?.id]
   );
 
   const filteredProducts = useMemo(() => {
-    return catalog.filter((product) => {
+    return activeCustomerCatalog.filter((product) => {
       const categoryMatch = activeCategory === "All" || product.category === activeCategory;
       const collectionMatch = activeCollection === "All" || product.collection === activeCollection;
       const query = searchQuery.trim().toLowerCase();
@@ -517,7 +525,7 @@ function App() {
       const searchMatch = !query || searchable.includes(query);
       return categoryMatch && collectionMatch && searchMatch;
     });
-  }, [activeCategory, activeCollection, catalog, searchQuery]);
+  }, [activeCategory, activeCollection, activeCustomerCatalog, searchQuery]);
 
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -885,6 +893,23 @@ function App() {
     }
   }
 
+  function getProductImages(productId) {
+    const product = catalog.find((item) => item.id === productId);
+    return product?.images?.length ? product.images : [];
+  }
+
+  function getImageDraft(productId, drafts = pendingImageEdits) {
+    return drafts[productId] || getProductImages(productId);
+  }
+
+  function setImageDraft(productId, updater) {
+    setPendingImageEdits((current) => {
+      const baseImages = getImageDraft(productId, current);
+      const nextImages = typeof updater === "function" ? updater(baseImages) : updater;
+      return { ...current, [productId]: nextImages };
+    });
+  }
+
   async function uploadAdminImage(productId, fileList) {
     const selectedFiles = Array.from(fileList || []).filter((file) => file?.type?.startsWith("image/"));
     const files = selectedFiles.slice(0, maxUploadFilesPerBatch);
@@ -895,12 +920,13 @@ function App() {
 
     try {
       const uploadedImages = [];
+      const existingImageCount = getImageDraft(productId).length;
 
       for (const [index, file] of files.entries()) {
         const optimized = await optimizeUploadImage(file);
         uploadedImages.push({
           id: `admin-image-${Date.now()}-${index}-${file.name.replace(/\W+/g, "-").toLowerCase()}`,
-          label: uploadAngleLabels[index] || `Angle ${index + 1}`,
+          label: uploadAngleLabels[existingImageCount + index] || `Angle ${existingImageCount + index + 1}`,
           fileName: file.name,
           src: optimized.src,
           width: optimized.width,
@@ -908,29 +934,9 @@ function App() {
         });
       }
 
-      let persisted = null;
-
-      setCatalog((current) =>
-        current.map((product) => {
-          if (product.id !== productId) return product;
-          const images = [...uploadedImages, ...(product.images || [])];
-          const nextProduct = normalizeProduct({
-            ...product,
-            image: images[0]?.src || product.image,
-            images
-          });
-          persisted = nextProduct;
-          return nextProduct;
-        })
-      );
-
-      if (hasApi && isAdmin && persisted) {
-        updateProduct(productId, { image: persisted.image, images: persisted.images }).catch((error) =>
-          setOrderMessage(error.message || "Could not save uploaded product images to the server.")
-        );
-      }
+      setImageDraft(productId, (currentImages) => [...currentImages, ...uploadedImages]);
       setOrderMessage(
-        `${uploadedImages.length} product image${uploadedImages.length === 1 ? "" : "s"} uploaded. ${
+        `${uploadedImages.length} product image${uploadedImages.length === 1 ? "" : "s"} ready. Review, rearrange, then save. ${
           selectedFiles.length > files.length ? `${selectedFiles.length - files.length} extra file(s) were skipped.` : ""
         }`.trim()
       );
@@ -940,6 +946,64 @@ function App() {
     } finally {
       setUploadingProductId("");
     }
+  }
+
+  function moveAdminImage(productId, index, direction) {
+    setImageDraft(productId, (currentImages) => {
+      const nextIndex = index + direction;
+      if (nextIndex < 0 || nextIndex >= currentImages.length) return currentImages;
+
+      const nextImages = [...currentImages];
+      const [image] = nextImages.splice(index, 1);
+      nextImages.splice(nextIndex, 0, image);
+      return nextImages;
+    });
+  }
+
+  function removeAdminImage(productId, index) {
+    setImageDraft(productId, (currentImages) => currentImages.filter((_, imageIndex) => imageIndex !== index));
+  }
+
+  function cancelAdminImages(productId) {
+    setPendingImageEdits((current) => {
+      const next = { ...current };
+      delete next[productId];
+      return next;
+    });
+    setOrderMessage("Image changes canceled. Customer gallery was not changed.");
+  }
+
+  function saveAdminImages(productId) {
+    const draftImages = pendingImageEdits[productId];
+    if (!draftImages) return;
+
+    let persisted = null;
+    setCatalog((current) =>
+      current.map((product) => {
+        if (product.id !== productId) return product;
+        const nextProduct = normalizeProduct({
+          ...product,
+          image: draftImages[0]?.src || "",
+          images: draftImages
+        });
+        persisted = nextProduct;
+        return nextProduct;
+      })
+    );
+
+    setPendingImageEdits((current) => {
+      const next = { ...current };
+      delete next[productId];
+      return next;
+    });
+
+    if (hasApi && isAdmin && persisted) {
+      updateProduct(productId, { image: persisted.image, images: persisted.images }).catch((error) =>
+        setOrderMessage(error.message || "Images saved locally, but could not sync to the server.")
+      );
+    }
+
+    setOrderMessage(`${draftImages.length} image${draftImages.length === 1 ? "" : "s"} saved. Customer product gallery is now updated.`);
   }
 
   function updateQuantity(cartId, delta) {
@@ -1074,14 +1138,14 @@ function App() {
             )}
             {routePath === "men" && (
               <MensCollectionLanding
-                products={catalog}
+                products={activeCustomerCatalog}
                 onAdd={addProductToCart}
                 onSelect={selectProduct}
               />
             )}
             {routePath === "women" && (
               <WomensCollectionLanding
-                products={catalog}
+                products={activeCustomerCatalog}
                 onAdd={addProductToCart}
                 onSelect={selectProduct}
               />
@@ -1149,9 +1213,14 @@ function App() {
                   setAuthError("");
                   setAuthModalOpen(true);
                 }}
+                onCancelImages={cancelAdminImages}
+                onMoveImage={moveAdminImage}
+                onRemoveImage={removeAdminImage}
+                onSaveImages={saveAdminImages}
                 onStock={updateAdminStock}
                 onUploadImage={uploadAdminImage}
                 orders={orders}
+                pendingImageEdits={pendingImageEdits}
                 products={catalog}
                 subtotal={subtotal}
                 uploadingProductId={uploadingProductId}
@@ -2628,9 +2697,14 @@ function AdminPanel({
   onDeleteProduct,
   onEditProduct,
   onSignIn,
+  onCancelImages,
+  onMoveImage,
+  onRemoveImage,
+  onSaveImages,
   onStock,
   onUploadImage,
   orders = [],
+  pendingImageEdits,
   products,
   subtotal,
   uploadingProductId,
@@ -2658,6 +2732,11 @@ function AdminPanel({
   }, [adminSearch, products]);
   const selectedAdminProduct = products.find((product) => product.id === selectedAdminId) || filteredAdminProducts[0] || products[0] || null;
   const isUploadingSelectedProduct = Boolean(selectedAdminProduct && uploadingProductId === selectedAdminProduct.id);
+  const stagedImages = selectedAdminProduct
+    ? pendingImageEdits[selectedAdminProduct.id] || selectedAdminProduct.images || []
+    : [];
+  const hasStagedImageChanges = Boolean(selectedAdminProduct && pendingImageEdits[selectedAdminProduct.id]);
+  const previewImage = stagedImages[0] || selectedAdminProduct?.image || "";
   const paidOrders = orders.filter((order) => order.status === "paid");
   const ordersRevenue = orders.reduce((sum, order) => sum + Number(order.total || 0), 0);
   const orderCountLabel = orders.length ? `${orders.length} orders` : lastOrder ? "1 draft" : "0 orders";
@@ -2828,7 +2907,7 @@ function AdminPanel({
         {selectedAdminProduct ? (
           <div className="admin-product-editor" id="admin-products">
           <div className="admin-editor-preview">
-            <ProductImage alt={`${selectedAdminProduct.name} admin preview`} image={selectedAdminProduct.images?.[0] || selectedAdminProduct.image} />
+            <ProductImage alt={`${selectedAdminProduct.name} admin preview`} image={previewImage} />
           </div>
           <div className="admin-editor-fields">
             <div className="admin-editor-title">
@@ -2885,7 +2964,7 @@ function AdminPanel({
               className={`admin-upload-control ${isUploadingSelectedProduct ? "uploading" : ""}`}
             >
               <Upload size={18} />
-              <span>{isUploadingSelectedProduct ? "Optimizing Images..." : "Upload Multiple Angle Images"}</span>
+              <span>{isUploadingSelectedProduct ? "Optimizing Images..." : "Select Multiple Product Images"}</span>
               <input
                 accept="image/*"
                 disabled={isUploadingSelectedProduct}
@@ -2898,21 +2977,81 @@ function AdminPanel({
               />
             </label>
 
-            <div className="admin-image-strip" aria-label="Uploaded product image angles">
-              {(selectedAdminProduct.images || []).length === 0 ? (
-                <div className="admin-empty-list compact">
-                  <Upload />
-                  <strong>No product images yet</strong>
-                  <span>Upload front, back, side, model, flat lay, and detail shots together.</span>
+            <div className="admin-image-workbench">
+              <div className="admin-image-workbench-heading">
+                <div>
+                  <p className="eyebrow">Product image gallery</p>
+                  <h4>{stagedImages.length} image{stagedImages.length === 1 ? "" : "s"}</h4>
                 </div>
-              ) : (
-                selectedAdminProduct.images.map((image, index) => (
-                  <article key={image.id || `${image.label || "image"}-${index}`}>
-                    <ProductImage alt={`${selectedAdminProduct.name} ${image.label || `Image ${index + 1}`}`} image={image} />
-                    <span>{image.label || `Image ${index + 1}`}</span>
-                  </article>
-                ))
-              )}
+                <span className={hasStagedImageChanges ? "image-draft-pill active" : "image-draft-pill"}>
+                  {hasStagedImageChanges ? "Unsaved changes" : "Published"}
+                </span>
+              </div>
+
+              <div className="admin-image-actions">
+                <button
+                  className="primary-command compact"
+                  disabled={!hasStagedImageChanges || isUploadingSelectedProduct}
+                  onClick={() => onSaveImages(selectedAdminProduct.id)}
+                  type="button"
+                >
+                  Save Images
+                </button>
+                <button
+                  className="secondary-command compact"
+                  disabled={!hasStagedImageChanges || isUploadingSelectedProduct}
+                  onClick={() => onCancelImages(selectedAdminProduct.id)}
+                  type="button"
+                >
+                  Cancel
+                </button>
+              </div>
+
+              <div className="admin-image-strip" aria-label="Uploaded product image angles">
+                {stagedImages.length === 0 ? (
+                  <div className="admin-empty-list compact">
+                    <Upload />
+                    <strong>No product images yet</strong>
+                    <span>Select front, back, side, model, flat lay, and detail shots together.</span>
+                  </div>
+                ) : (
+                  stagedImages.map((image, index) => (
+                    <article key={image.id || `${image.label || "image"}-${index}`} className={index === 0 ? "primary" : ""}>
+                      <div className="admin-image-frame">
+                        <ProductImage alt={`${selectedAdminProduct.name} ${image.label || `Image ${index + 1}`}`} image={image} />
+                      </div>
+                      <div className="admin-image-meta">
+                        <strong>{index === 0 ? "Primary" : `Angle ${index + 1}`}</strong>
+                        <span>{image.label || `Image ${index + 1}`}</span>
+                      </div>
+                      <div className="admin-image-controls">
+                        <button
+                          disabled={index === 0 || isUploadingSelectedProduct}
+                          onClick={() => onMoveImage(selectedAdminProduct.id, index, -1)}
+                          type="button"
+                        >
+                          <ChevronLeft size={14} /> Left
+                        </button>
+                        <button
+                          disabled={index === stagedImages.length - 1 || isUploadingSelectedProduct}
+                          onClick={() => onMoveImage(selectedAdminProduct.id, index, 1)}
+                          type="button"
+                        >
+                          Right <ChevronRight size={14} />
+                        </button>
+                        <button
+                          className="danger"
+                          disabled={isUploadingSelectedProduct}
+                          onClick={() => onRemoveImage(selectedAdminProduct.id, index)}
+                          type="button"
+                        >
+                          <Trash2 size={14} /> Remove
+                        </button>
+                      </div>
+                    </article>
+                  ))
+                )}
+              </div>
             </div>
 
             <div className="admin-size-stock">

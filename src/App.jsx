@@ -52,6 +52,9 @@ const brandLogo = `${import.meta.env.BASE_URL}brand/mg69-logo3.png`;
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const BASE_URL = import.meta.env.BASE_URL;
 const privilegedRoles = new Set(["admin", "owner", "access-member", "access_member"]);
+const localUsersStorageKey = "mg69-local-users";
+const localOwnerAccessCode = "MG69-OWNER";
+const localAccessMemberCode = "MG69-ACCESS";
 const defaultSizes = ["S", "M", "L", "XL", "XXL"];
 const defaultColors = [
   { name: "Matte Black", hex: "#080807" },
@@ -83,6 +86,83 @@ const maxStoredDataImageLength = 520000;
 
 function canManageApp(user) {
   return privilegedRoles.has(String(user?.role || "").toLowerCase());
+}
+
+function readLocalUsers() {
+  return readStoredValue(localUsersStorageKey, []);
+}
+
+function writeLocalUsers(users) {
+  writeStoredValue(localUsersStorageKey, users);
+}
+
+function getLocalRole(accessCode = "") {
+  const normalized = accessCode.trim().toUpperCase();
+  if (normalized === localOwnerAccessCode) return "owner";
+  if (normalized === localAccessMemberCode) return "access-member";
+  return "customer";
+}
+
+function authenticateLocalUser(mode, formValues) {
+  const email = String(formValues.email || "").trim().toLowerCase();
+  const password = String(formValues.password || "");
+  const name = String(formValues.name || "").trim();
+  const role = getLocalRole(formValues.accessCode);
+  const users = readLocalUsers();
+  const existing = users.find((user) => user.email === email);
+
+  if (!emailPattern.test(email)) {
+    throw new Error("Enter a valid email address.");
+  }
+
+  if (password.length < 8) {
+    throw new Error("Password must be at least 8 characters.");
+  }
+
+  if (mode === "register") {
+    if (existing) throw new Error("That profile already exists. Sign in instead.");
+
+    const user = {
+      id: `local-${Date.now()}`,
+      name: name || email.split("@")[0],
+      email,
+      password,
+      role,
+      wishlist: []
+    };
+
+    writeLocalUsers([user, ...users]);
+    return { user: { ...user, password: undefined } };
+  }
+
+  if (!existing) {
+    if (role !== "customer") {
+      const user = {
+        id: `local-${Date.now()}`,
+        name: email.split("@")[0],
+        email,
+        password,
+        role,
+        wishlist: []
+      };
+
+      writeLocalUsers([user, ...users]);
+      return { user: { ...user, password: undefined } };
+    }
+
+    throw new Error("No profile found. Create one first, or enter an owner access code.");
+  }
+
+  if (existing.password !== password) {
+    throw new Error("Incorrect password.");
+  }
+
+  const upgradedUser = role !== "customer" && existing.role !== role ? { ...existing, role } : existing;
+  if (upgradedUser !== existing) {
+    writeLocalUsers(users.map((user) => (user.email === email ? upgradedUser : user)));
+  }
+
+  return { user: { ...upgradedUser, password: undefined } };
 }
 
 function loadImageElement(file) {
@@ -535,7 +615,11 @@ function App() {
     setAuthError("");
 
     try {
-      const data = mode === "register" ? await registerUser(formValues) : await loginUser(formValues);
+      const data = hasApi
+        ? mode === "register"
+          ? await registerUser(formValues)
+          : await loginUser(formValues)
+        : authenticateLocalUser(mode, formValues);
       if (data?.token) setToken(data.token);
       setAuth({ user: data.user });
 
@@ -872,7 +956,6 @@ function App() {
       <div className="grain" aria-hidden="true" />
       <Header
         appMode={visibleAppMode}
-        authEnabled={hasApi}
         canAccessAdmin={adminUnlocked}
         itemCount={itemCount}
         onAccount={() => {
@@ -987,7 +1070,6 @@ function App() {
             {routePath.startsWith("admin") && (
               <AdminPanel
                 adminUnlocked={adminUnlocked}
-                authEnabled={hasApi}
                 cart={cart}
                 catalogStatus={catalogStatus}
                 inventoryCount={inventoryCount}
@@ -1018,28 +1100,35 @@ function App() {
         onMenu={() => setDrawerOpen(true)}
         wishlistCount={wishlist.length}
       />
-      {hasApi && (
-        <AuthModal
-          busy={authBusy}
-          error={authError}
-          onClose={() => setAuthModalOpen(false)}
-          onSubmit={handleAuthSubmit}
-          open={authModalOpen}
-        />
-      )}
+      <AuthModal
+        busy={authBusy}
+        canAccessAdmin={adminUnlocked}
+        error={authError}
+        hasApi={hasApi}
+        onClose={() => setAuthModalOpen(false)}
+        onLogout={() => {
+          handleLogout();
+          setAuthModalOpen(false);
+        }}
+        onSubmit={handleAuthSubmit}
+        open={authModalOpen}
+        user={currentUser}
+      />
     </div>
   );
 }
 
-function AuthModal({ busy, error, onClose, onSubmit, open }) {
+function AuthModal({ busy, canAccessAdmin, error, hasApi, onClose, onLogout, onSubmit, open, user }) {
   const [mode, setMode] = useState("login");
+  const roleLabel = user?.role ? user.role.replace(/[_-]/g, " ") : "customer";
 
   function handleSubmit(event) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const payload = {
       email: String(form.get("email") || "").trim(),
-      password: String(form.get("password") || "")
+      password: String(form.get("password") || ""),
+      accessCode: String(form.get("accessCode") || "").trim()
     };
     if (mode === "register") payload.name = String(form.get("name") || "").trim();
     onSubmit(mode, payload);
@@ -1098,8 +1187,15 @@ function AuthModal({ busy, error, onClose, onSubmit, open }) {
                   MG69 Account
                 </p>
                 <h2 style={{ fontSize: 22, fontWeight: 800, margin: 0, color: "#fff", letterSpacing: "-0.01em" }}>
-                  {mode === "register" ? "Create account" : "Welcome back"}
+                  {user ? "Your profile" : mode === "register" ? "Create account" : "Welcome back"}
                 </h2>
+                <p style={{ color: "#777", fontSize: 12, lineHeight: 1.5, margin: "8px 0 0" }}>
+                  {user
+                    ? "Manage your profile and access level."
+                    : hasApi
+                    ? "Use your MG69 account credentials."
+                    : "Static site mode: customer profiles save in this browser."}
+                </p>
               </div>
               <button
                 onClick={onClose}
@@ -1111,57 +1207,125 @@ function AuthModal({ busy, error, onClose, onSubmit, open }) {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {mode === "register" && (
-                <input name="name" placeholder="Full name" autoComplete="name" style={field} />
-              )}
-              <input name="email" type="email" placeholder="Email" autoComplete="email" required style={field} />
-              <input
-                name="password"
-                type="password"
-                placeholder={mode === "register" ? "Password (min 8 chars)" : "Password"}
-                autoComplete={mode === "register" ? "new-password" : "current-password"}
-                required
-                minLength={mode === "register" ? 8 : undefined}
-                style={field}
-              />
+            {user ? (
+              <div style={{ display: "grid", gap: 14 }}>
+                <div style={{ border: "1px solid #242424", borderRadius: 10, padding: 16, background: "#101010" }}>
+                  <p style={{ color: "#777", fontSize: 11, letterSpacing: "0.14em", margin: "0 0 8px", textTransform: "uppercase" }}>
+                    Profile
+                  </p>
+                  <h3 style={{ color: "#fff", margin: "0 0 6px", fontSize: 18 }}>{user.name || "MG69 Member"}</h3>
+                  <p style={{ color: "#aaa", margin: "0 0 10px", fontSize: 13 }}>{user.email}</p>
+                  <span style={{ color: "#C9A84C", fontSize: 11, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase" }}>
+                    {roleLabel}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    window.location.hash = canAccessAdmin ? "admin" : "wishlist";
+                  }}
+                  style={{
+                    background: "#C9A84C",
+                    color: "#000",
+                    border: "none",
+                    borderRadius: 6,
+                    padding: "12px",
+                    fontSize: 13,
+                    fontWeight: 800,
+                    letterSpacing: "0.08em",
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                    textTransform: "uppercase"
+                  }}
+                >
+                  {canAccessAdmin ? "Open admin tools" : "Open profile"}
+                </button>
+                <button
+                  type="button"
+                  onClick={onLogout}
+                  style={{
+                    background: "transparent",
+                    color: "#fff",
+                    border: "1px solid #242424",
+                    borderRadius: 6,
+                    padding: "12px",
+                    cursor: "pointer",
+                    fontFamily: "inherit"
+                  }}
+                >
+                  Sign out
+                </button>
+                {!canAccessAdmin && (
+                  <p style={{ color: "#777", fontSize: 11.5, lineHeight: 1.5, margin: 0 }}>
+                    Need admin access? Sign out, then sign in with an owner/access code.
+                  </p>
+                )}
+              </div>
+            ) : (
+              <>
+                <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {mode === "register" && (
+                    <input name="name" placeholder="Full name" autoComplete="name" style={field} />
+                  )}
+                  <input name="email" type="email" placeholder="Email" autoComplete="email" required style={field} />
+                  <input
+                    name="password"
+                    type="password"
+                    placeholder={mode === "register" ? "Password (min 8 chars)" : "Password"}
+                    autoComplete={mode === "register" ? "new-password" : "current-password"}
+                    required
+                    minLength={mode === "register" ? 8 : undefined}
+                    style={field}
+                  />
+                  <input
+                    name="accessCode"
+                    placeholder="Owner/access code (optional)"
+                    autoComplete="off"
+                    style={field}
+                  />
+                  <p style={{ color: "#777", fontSize: 11.5, lineHeight: 1.5, margin: "-4px 0 0" }}>
+                    Customers can leave the code empty. Owners/access members enter their code to unlock admin tools.
+                  </p>
 
-              {error && (
-                <p style={{ color: "#ff6b6b", fontSize: 12.5, margin: 0, lineHeight: 1.5 }}>{error}</p>
-              )}
+                  {error && (
+                    <p style={{ color: "#ff6b6b", fontSize: 12.5, margin: 0, lineHeight: 1.5 }}>{error}</p>
+                  )}
 
-              <button
-                type="submit"
-                disabled={busy}
-                style={{
-                  background: "#C9A84C",
-                  color: "#000",
-                  border: "none",
-                  borderRadius: 6,
-                  padding: "12px",
-                  fontSize: 13,
-                  fontWeight: 700,
-                  letterSpacing: "0.08em",
-                  cursor: busy ? "default" : "pointer",
-                  opacity: busy ? 0.6 : 1,
-                  marginTop: 4,
-                  fontFamily: "inherit"
-                }}
-              >
-                {busy ? "Please wait…" : mode === "register" ? "Create account" : "Sign in"}
-              </button>
-            </form>
+                  <button
+                    type="submit"
+                    disabled={busy}
+                    style={{
+                      background: "#C9A84C",
+                      color: "#000",
+                      border: "none",
+                      borderRadius: 6,
+                      padding: "12px",
+                      fontSize: 13,
+                      fontWeight: 700,
+                      letterSpacing: "0.08em",
+                      cursor: busy ? "default" : "pointer",
+                      opacity: busy ? 0.6 : 1,
+                      marginTop: 4,
+                      fontFamily: "inherit"
+                    }}
+                  >
+                    {busy ? "Please wait…" : mode === "register" ? "Create account" : "Sign in"}
+                  </button>
+                </form>
 
-            <p style={{ fontSize: 12.5, color: "#666", textAlign: "center", margin: "16px 0 0" }}>
-              {mode === "register" ? "Already have an account?" : "New to MG69?"}{" "}
-              <button
-                onClick={() => setMode(mode === "register" ? "login" : "register")}
-                type="button"
-                style={{ background: "none", border: "none", color: "#C9A84C", cursor: "pointer", fontSize: 12.5, fontFamily: "inherit", fontWeight: 600 }}
-              >
-                {mode === "register" ? "Sign in" : "Create one"}
-              </button>
-            </p>
+                <p style={{ fontSize: 12.5, color: "#666", textAlign: "center", margin: "16px 0 0" }}>
+                  {mode === "register" ? "Already have an account?" : "New to MG69?"}{" "}
+                  <button
+                    onClick={() => setMode(mode === "register" ? "login" : "register")}
+                    type="button"
+                    style={{ background: "none", border: "none", color: "#C9A84C", cursor: "pointer", fontSize: 12.5, fontFamily: "inherit", fontWeight: 600 }}
+                  >
+                    {mode === "register" ? "Sign in" : "Create one"}
+                  </button>
+                </p>
+              </>
+            )}
           </motion.div>
         </motion.div>
       )}
@@ -1245,7 +1409,6 @@ function BrandReveal() {
 
 function Header({
   appMode,
-  authEnabled,
   canAccessAdmin,
   itemCount,
   onAccount,
@@ -1284,29 +1447,21 @@ function Header({
             </button>
           </div>
         )}
-        {authEnabled &&
-          (user ? (
-            <div className="account-chip" style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <span
-                style={{
-                  fontSize: 12,
-                  color: "#C9A84C",
-                  fontWeight: 600,
-                  letterSpacing: "0.04em",
-                  whiteSpace: "nowrap"
-                }}
-              >
-                {user.name?.split(" ")[0] || "Account"}
-              </span>
-              <button className="icon-button" onClick={onLogout} type="button" aria-label="Sign out" title="Sign out">
-                <LogOut size={18} />
-              </button>
-            </div>
-          ) : (
-            <button className="icon-button" onClick={onAccount} type="button" aria-label="Sign in" title="Sign in">
-              <User />
+        {user ? (
+          <div className="account-chip">
+            <button className="account-name-button" onClick={onAccount} type="button" title="Profile">
+              <User size={16} />
+              <span>{user.name?.split(" ")[0] || "Account"}</span>
             </button>
-          ))}
+            <button className="icon-button" onClick={onLogout} type="button" aria-label="Sign out" title="Sign out">
+              <LogOut size={18} />
+            </button>
+          </div>
+        ) : (
+          <button className="icon-button profile-button" onClick={onAccount} type="button" aria-label="Sign in or create profile" title="Sign in or create profile">
+            <User />
+          </button>
+        )}
         <a className="icon-button" href="#shop" aria-label="Search collection">
           <Search />
         </a>
@@ -2320,7 +2475,6 @@ function OrderTracking({ cart, order }) {
 
 function AdminPanel({
   adminUnlocked,
-  authEnabled,
   cart,
   catalogStatus,
   inventoryCount,
@@ -2448,15 +2602,11 @@ function AdminPanel({
           <Settings />
           <h3>Admin access required</h3>
           <p>
-            {authEnabled
-              ? "Sign in with an owner or access-member account to manage products, inventory, and orders."
-              : "Connect the MG69 API and sign in with an owner account to manage products, inventory, and orders."}
+            Sign in with an owner or access-member account to manage products, inventory, uploads, and orders.
           </p>
-          {authEnabled && (
-            <button className="primary-command compact" onClick={onSignIn} type="button" style={{ marginTop: 14 }}>
-              Sign in as admin
-            </button>
-          )}
+          <button className="primary-command compact" onClick={onSignIn} type="button" style={{ marginTop: 14 }}>
+            Sign in as admin
+          </button>
         </div>
       </section>
     );

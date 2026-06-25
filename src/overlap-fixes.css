@@ -739,6 +739,26 @@ main,
     display: none !important;
   }
 
+  .top-actions .profile-button {
+    display: inline-grid !important;
+  }
+
+  .account-chip {
+    display: flex !important;
+  }
+
+  .account-name-button {
+    width: 38px !important;
+    height: 38px !important;
+    justify-content: center !important;
+    padding: 0 !important;
+  }
+
+  .account-name-button span,
+  .account-chip .icon-button {
+    display: none !important;
+  }
+
   .top-actions .bag-button {
     display: inline-grid !important;
   }

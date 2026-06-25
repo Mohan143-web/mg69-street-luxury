@@ -336,8 +336,40 @@ button {
 
 .top-actions {
   display: flex;
+  align-items: center;
   justify-content: end;
   gap: 8px;
+}
+
+.account-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.account-name-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 42px;
+  padding: 0 12px;
+  border: 1px solid rgba(215, 168, 63, 0.22);
+  border-radius: 8px;
+  background: rgba(8, 8, 7, 0.78);
+  color: var(--gold-bright);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: transform 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+.account-name-button:hover {
+  transform: translateY(-2px);
+  border-color: var(--gold-line);
+  color: var(--warm-cream);
 }
 
 .mode-toggle,

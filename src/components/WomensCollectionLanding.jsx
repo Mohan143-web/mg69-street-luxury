@@ -50,7 +50,36 @@ function ProductPhoto({ src, alt }) {
 
 export default function WomensCollectionLanding({ products, onAdd, onSelect }) {
   const womenProducts = products.filter((p) => p.category === "Women");
-  if (!womenProducts.length) return null;
+  if (!womenProducts.length) {
+    return (
+      <section id="women" style={{ background: "#0a0a0a", color: "#fff", padding: "56px 32px", borderTop: "1px solid #141414" }}>
+        <p style={{ fontSize: 11, letterSpacing: "0.18em", color: "#C9A84C", textTransform: "uppercase", margin: "0 0 8px" }}>
+          Women / Inventory
+        </p>
+        <h2 style={{ fontSize: 26, fontWeight: 800, margin: "0 0 10px" }}>Women&apos;s Collection</h2>
+        <p style={{ color: "#777", maxWidth: 560, lineHeight: 1.6, margin: "0 0 20px" }}>
+          No women&apos;s products are live yet. Add products, stock, and image angles from the admin dashboard to publish this collection.
+        </p>
+        <a
+          href="#admin"
+          style={{
+            color: "#000",
+            background: "#C9A84C",
+            borderRadius: 5,
+            padding: "12px 18px",
+            textDecoration: "none",
+            fontSize: 12,
+            fontWeight: 800,
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            display: "inline-block"
+          }}
+        >
+          Open Admin Inventory
+        </a>
+      </section>
+    );
+  }
 
   return (
     <>

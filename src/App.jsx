@@ -523,7 +523,21 @@ function App() {
   const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const inventoryCount = catalog.reduce((sum, product) => sum + product.stock, 0);
   const isOrderConfirmed = routePath === "order-confirmed";
-  const shouldShowCommerceSections = routePath !== "home" || Boolean(searchQuery.trim());
+  const catalogRoutePaths = new Set(["shop", "men", "women", "drop-001"]);
+  const productRoutePaths = new Set(["shop", "men", "women", "drop-001", "checkout"]);
+  const isCatalogRoute = catalogRoutePaths.has(routePath);
+  const isCommerceRoute = isCatalogRoute || (routePath === "home" && Boolean(searchQuery.trim()));
+  const shouldShowHero = routePath === "home";
+  const shouldShowCategoryNavigator = routePath === "home" || isCatalogRoute;
+  const shouldShowShop = isCatalogRoute || (routePath === "home" && Boolean(searchQuery.trim()));
+  const selectedProductMatchesFilters = Boolean(
+    selectedProduct && filteredProducts.some((product) => product.id === selectedProduct.id)
+  );
+  const shouldShowProductStudio =
+    productRoutePaths.has(routePath) && Boolean(selectedProduct) && (routePath === "checkout" || selectedProductMatchesFilters);
+  const shouldShowStorySections = routePath === "home" || routePath === "lookbook";
+  const shouldShowWishlist = routePath === "wishlist";
+  const shouldShowOrders = routePath === "orders";
 
   useEffect(() => {
     const handleHash = () => setRoute(window.location.hash.replace("#", "") || "home");
@@ -572,12 +586,18 @@ function App() {
       setAppMode("customer");
     }
 
+    if (!["shop", "men", "women", "drop-001"].includes(routePath)) {
+      setSearchQuery("");
+    }
+
+    if (routePath === "shop") {
+      setActiveCategory("All");
+      setActiveCollection("All");
+    }
+
     if (routePath === "men") {
       setActiveCategory("Men");
       setActiveCollection("All");
-      window.requestAnimationFrame(() => {
-        document.getElementById("men")?.scrollIntoView({ block: "start" });
-      });
     }
 
     if (routePath === "women") {
@@ -596,6 +616,46 @@ function App() {
       else if (!getToken()) setAuthModalOpen(true);
     }
   }, [routePath, adminUnlocked]);
+
+  useEffect(() => {
+    const scrollTargets = {
+      shop: "shop",
+      men: "men",
+      women: "women",
+      "drop-001": "shop",
+      wishlist: "wishlist",
+      orders: "orders",
+      checkout: "checkout",
+      lookbook: "lookbook",
+      admin: "admin"
+    };
+    const targetId = scrollTargets[routePath];
+    if (!targetId) return;
+
+    window.requestAnimationFrame(() => {
+      document.getElementById(targetId)?.scrollIntoView({ block: "start" });
+    });
+  }, [routePath]);
+
+  function handleCategoryFilter(category) {
+    setActiveCategory(category);
+    if (category === "Men") window.location.hash = "men";
+    else if (category === "Women") window.location.hash = "women";
+    else if (routePath === "home") window.location.hash = "shop";
+  }
+
+  function handleCollectionFilter(collection) {
+    setActiveCollection(collection);
+    if (collection === "Drop 001") window.location.hash = "drop-001";
+    else if (routePath === "home") window.location.hash = "shop";
+  }
+
+  function handleCatalogSearch(value) {
+    setSearchQuery(value);
+    if (value.trim() && routePath === "home") {
+      window.location.hash = "shop";
+    }
+  }
 
   // Once a session resolves, close any open auth modal.
   useEffect(() => {
@@ -989,7 +1049,7 @@ function App() {
           <OrderConfirmed onClearCart={() => setCart([])} />
         ) : (
           <>
-            <Hero />
+            {shouldShowHero && <Hero />}
             {adminUnlocked && (
               <ModeDashboard
                 appMode={visibleAppMode}
@@ -1002,14 +1062,16 @@ function App() {
                 wishlistCount={wishlist.length}
               />
             )}
-            <CategoryNavigator
-              activeCategory={activeCategory}
-              activeCollection={activeCollection}
-              onCategory={setActiveCategory}
-              onCollection={setActiveCollection}
-              onSearch={setSearchQuery}
-              searchQuery={searchQuery}
-            />
+            {shouldShowCategoryNavigator && (
+              <CategoryNavigator
+                activeCategory={activeCategory}
+                activeCollection={activeCollection}
+                onCategory={handleCategoryFilter}
+                onCollection={handleCollectionFilter}
+                onSearch={handleCatalogSearch}
+                searchQuery={searchQuery}
+              />
+            )}
             {routePath === "men" && (
               <MensCollectionLanding
                 products={catalog}
@@ -1024,49 +1086,53 @@ function App() {
                 onSelect={selectProduct}
               />
             )}
-            <StorySections />
-            {shouldShowCommerceSections && (
+            {shouldShowStorySections && <StorySections />}
+            {shouldShowShop && (
+              <Shop
+                products={filteredProducts}
+                isLoading={catalogStatus === "connecting"}
+                selectedProductId={selectedProduct?.id || ""}
+                searchQuery={searchQuery}
+                wishlist={wishlist}
+                onSelect={selectProduct}
+                onWishlist={toggleWishlist}
+              />
+            )}
+            {shouldShowProductStudio && (
+              <ProductStudio
+                product={selectedProduct}
+                selectedSize={selectedSize}
+                selectedColor={selectedColor}
+                selectedQuantity={selectedQuantity}
+                selectedSizeStock={selectedSizeStock}
+                cart={cart}
+                checkoutLoading={checkoutLoading}
+                subtotal={subtotal}
+                orderMessage={orderMessage}
+                recentlyViewed={recentlyViewedProducts}
+                relatedProducts={relatedProducts}
+                onSize={setSelectedSize}
+                onColor={setSelectedColor}
+                onPurchaseQuantity={setSelectedQuantity}
+                onAdd={addToCart}
+                onBuyNow={buyNow}
+                onSelect={selectProduct}
+                onQuantity={updateQuantity}
+                onCheckout={handleCheckout}
+                wishlist={wishlist}
+                onWishlist={toggleWishlist}
+              />
+            )}
+            {(shouldShowWishlist || shouldShowOrders) && (
               <>
-                <Shop
-                  products={filteredProducts}
-                  isLoading={catalogStatus === "connecting"}
-                  selectedProductId={selectedProduct?.id || ""}
-                  searchQuery={searchQuery}
-                  wishlist={wishlist}
-                  onSelect={selectProduct}
-                  onWishlist={toggleWishlist}
-                />
-                {selectedProduct && (
-                  <ProductStudio
-                    product={selectedProduct}
-                    selectedSize={selectedSize}
-                    selectedColor={selectedColor}
-                    selectedQuantity={selectedQuantity}
-                    selectedSizeStock={selectedSizeStock}
-                    cart={cart}
-                    checkoutLoading={checkoutLoading}
-                    subtotal={subtotal}
-                    orderMessage={orderMessage}
-                    recentlyViewed={recentlyViewedProducts}
-                    relatedProducts={relatedProducts}
-                    onSize={setSelectedSize}
-                    onColor={setSelectedColor}
-                    onPurchaseQuantity={setSelectedQuantity}
-                    onAdd={addToCart}
-                    onBuyNow={buyNow}
+                {shouldShowWishlist && (
+                  <WishlistPanel
+                    products={wishlistProducts}
                     onSelect={selectProduct}
-                    onQuantity={updateQuantity}
-                    onCheckout={handleCheckout}
-                    wishlist={wishlist}
                     onWishlist={toggleWishlist}
                   />
                 )}
-                <WishlistPanel
-                  products={wishlistProducts}
-                  onSelect={selectProduct}
-                  onWishlist={toggleWishlist}
-                />
-                <OrderTracking cart={cart} order={lastOrder} />
+                {shouldShowOrders && <OrderTracking cart={cart} order={lastOrder} />}
               </>
             )}
             {routePath.startsWith("admin") && (

@@ -22,7 +22,7 @@ function ProductPhoto({ src, alt, label, bg, style={} }) {
   return (
     <div style={{ width:"100%", height:"100%", position:"relative", overflow:"hidden" }}>
       {(!loaded || errored) && <Tile label={label} bg={bg} />}
-      {!errored && <img src={src} alt={alt} style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover", opacity:loaded?1:0, transition:"opacity 0.3s", ...style }} onLoad={() => setLoaded(true)} onError={() => setErrored(true)} />}
+      {src && !errored && <img src={src} alt={alt} style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover", opacity:loaded?1:0, transition:"opacity 0.3s", ...style }} onLoad={() => setLoaded(true)} onError={() => setErrored(true)} />}
     </div>
   );
 }
@@ -93,16 +93,41 @@ export default function MensCollectionLanding({ products, onAdd, onSelect }) {
   const [addedToCart, setAddedToCart] = useState(false);
   const touchX = useRef(null);
   const activeVariant = featured?.colorVariants?.find(v => v.name===activeVariantName) || featured?.colorVariants?.[0];
-  const images = activeVariant?.gallery || [];
-  const active = images[imgIndex] || images[0];
-  const bg = COLOR_BG[activeVariant?.name] || "#1e1e1e";
-  const goNext = useCallback(() => setImgIndex(i => (i+1)%images.length), [images.length]);
-  const goPrev = useCallback(() => setImgIndex(i => (i-1+images.length)%images.length), [images.length]);
+  const fallbackGallery = featured?.images?.length
+    ? featured.images
+    : featured?.image
+      ? [{ label: "Front View", src: featured.image }]
+      : [{ label: "Awaiting Image", src: "" }];
+  const images = activeVariant?.gallery?.length ? activeVariant.gallery : fallbackGallery;
+  const active = images[Math.min(imgIndex, Math.max(images.length - 1, 0))] || images[0];
+  const swatches = featured?.colorVariants?.length
+    ? featured.colorVariants
+    : (featured?.colors || []).map((color) => {
+        const name = typeof color === "string" ? color : color.name;
+        return { name, hex: typeof color === "string" ? COLOR_BG[color] || "#2a2a2a" : color.hex || COLOR_BG[name] || "#2a2a2a" };
+      });
+  const displayVariantName = activeVariant?.name || activeVariantName || swatches[0]?.name || "Matte Black";
+  const bg = COLOR_BG[displayVariantName] || "#1e1e1e";
+  const goNext = useCallback(() => setImgIndex(i => (images.length ? (i+1)%images.length : 0)), [images.length]);
+  const goPrev = useCallback(() => setImgIndex(i => (images.length ? (i-1+images.length)%images.length : 0)), [images.length]);
   useEffect(() => { setImgIndex(0); }, [activeVariantName]);
-  if (!featured) return null;
+  if (!featured) {
+    return (
+      <section id="men" style={{ background:"#0a0a0a", color:"#fff", padding:"56px 32px", borderTop:"1px solid #141414" }}>
+        <p style={{ fontSize:11, letterSpacing:"0.18em", color:"#C9A84C", textTransform:"uppercase", margin:"0 0 8px" }}>Men / Inventory</p>
+        <h2 style={{ fontSize:26, fontWeight:800, margin:"0 0 10px" }}>Men&apos;s Collection</h2>
+        <p style={{ color:"#777", maxWidth:560, lineHeight:1.6, margin:"0 0 20px" }}>
+          No men&apos;s products are live yet. Add products, stock, and image angles from the admin dashboard to publish this collection.
+        </p>
+        <a href="#admin" style={{ color:"#000", background:"#C9A84C", borderRadius:5, padding:"12px 18px", textDecoration:"none", fontSize:12, fontWeight:800, letterSpacing:"0.08em", textTransform:"uppercase", display:"inline-block" }}>
+          Open Admin Inventory
+        </a>
+      </section>
+    );
+  }
 
   function handleAddToCart() {
-    onAdd(featured, size, activeVariant?.name||"", qty);
+    onAdd(featured, size, displayVariantName, qty);
     setAddedToCart(true);
     setTimeout(() => setAddedToCart(false), 2000);
   }
@@ -148,7 +173,7 @@ export default function MensCollectionLanding({ products, onAdd, onSelect }) {
 
       <div className="mcl" id="men">
         <div style={{ padding:"14px 32px", borderBottom:"1px solid #141414", display:"flex", gap:8, alignItems:"center" }}>
-          {["Home","Men","Drop 001","MG69 Utility Set"].map((c,i,arr) => (
+          {["Home","Men","Drop 001",featured.name].map((c,i,arr) => (
             <span key={c} style={{ display:"flex", alignItems:"center", gap:8 }}>
               <a href={i===0?"#home":i===1?"#men":"#drop-001"} style={{ fontSize:11, letterSpacing:"0.1em", textTransform:"uppercase", textDecoration:"none", color:i===arr.length-1?"#fff":"#555" }}>{c}</a>
               {i<arr.length-1 && <span style={{ color:"#2a2a2a", fontSize:11 }}>/</span>}
@@ -185,7 +210,7 @@ export default function MensCollectionLanding({ products, onAdd, onSelect }) {
         <div style={{ padding:"40px 32px 60px" }}>
           <div style={{ marginBottom:28 }}>
             <p style={{ fontSize:11, letterSpacing:"0.18em", color:"#C9A84C", textTransform:"uppercase", margin:"0 0 6px" }}>Featured Product</p>
-            <h2 style={{ fontSize:20, fontWeight:700, margin:0, letterSpacing:"-0.01em" }}>MG69 Utility Set — Full Gallery</h2>
+            <h2 style={{ fontSize:20, fontWeight:700, margin:0, letterSpacing:"-0.01em" }}>{featured.name} — Full Gallery</h2>
           </div>
 
           <div className="mcl-layout">
@@ -210,7 +235,7 @@ export default function MensCollectionLanding({ products, onAdd, onSelect }) {
                   {images.map((_,i) => <div key={i} style={{ width:i===imgIndex?16:5, height:5, borderRadius:3, background:i===imgIndex?"#C9A84C":"rgba(255,255,255,0.2)", transition:"width 0.2s" }} />)}
                 </div>
               </div>
-              <p style={{ textAlign:"center", fontSize:11, color:"#3a3a3a", letterSpacing:"0.08em", marginTop:10 }}>{imgIndex+1} / {images.length}</p>
+              <p style={{ textAlign:"center", fontSize:11, color:"#3a3a3a", letterSpacing:"0.08em", marginTop:10 }}>{Math.min(imgIndex + 1, images.length)} / {images.length}</p>
             </div>
 
             <div className="mcl-info" style={{ paddingLeft:36 }}>
@@ -219,7 +244,7 @@ export default function MensCollectionLanding({ products, onAdd, onSelect }) {
                 <span style={{ fontSize:10, color:"#3a3a3a", letterSpacing:"0.1em", textTransform:"uppercase" }}>· Limited Edition</span>
               </div>
               <h1 style={{ fontSize:26, fontWeight:800, letterSpacing:"-0.02em", margin:"0 0 4px", lineHeight:1.1 }}>{featured.name}</h1>
-              <p style={{ fontSize:12, letterSpacing:"0.16em", color:"#555", textTransform:"uppercase", margin:"0 0 16px" }}>{activeVariant?.name} Edition</p>
+              <p style={{ fontSize:12, letterSpacing:"0.16em", color:"#555", textTransform:"uppercase", margin:"0 0 16px" }}>{displayVariantName} Edition</p>
               <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:16 }}>
                 <span style={{ fontSize:24, fontWeight:700, color:"#C9A84C" }}>{money(featured.price)}</span>
                 <div style={{ display:"flex", alignItems:"center", gap:5 }}>
@@ -238,12 +263,12 @@ export default function MensCollectionLanding({ products, onAdd, onSelect }) {
               <div style={{ marginBottom:20 }}>
                 <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
                   <span style={{ fontSize:11, letterSpacing:"0.12em", textTransform:"uppercase", color:"#666" }}>Color</span>
-                  <span style={{ fontSize:12, color:"#C9A84C", fontWeight:600 }}>{activeVariant?.name}</span>
+                  <span style={{ fontSize:12, color:"#C9A84C", fontWeight:600 }}>{displayVariantName}</span>
                 </div>
                 <div style={{ display:"flex", gap:12, alignItems:"center" }}>
-                  {(featured.colorVariants||[]).map(v => (
+                  {swatches.map(v => (
                     <div key={v.name} style={{ textAlign:"center" }}>
-                      <button className={`mcl-sw${activeVariantName===v.name?" active":""}`} onClick={() => setActiveVariantName(v.name)} aria-label={v.name} style={{ background:v.hex, display:"block", margin:"0 auto 5px" }} />
+                      <button className={`mcl-sw${displayVariantName===v.name?" active":""}`} onClick={() => setActiveVariantName(v.name)} aria-label={v.name} style={{ background:v.hex, display:"block", margin:"0 auto 5px" }} />
                       <span style={{ fontSize:9, color:"#444", letterSpacing:"0.04em", textTransform:"uppercase" }}>{v.name.split(" ")[0]}</span>
                     </div>
                   ))}
